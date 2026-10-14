@@ -782,12 +782,14 @@ impl ProviderAdapter for ClaudeAdapter {
 
         // Anthropic Messages 协议的默认上游就是官方 API。这里过去直接报
         // 「Claude Provider 缺少 base_url 配置」，于是内置的 official 供应商（env 本来
-        // 就是空的）永远发不出请求，代理层只能一直失败。只对官方协议回落——第三方中转
-        // 服务缺 base_url 仍然要报错，否则请求会被悄悄发去 api.anthropic.com。
-        if matches!(
-            self.provider_type(provider),
-            ProviderType::Claude | ProviderType::AnthropicOAuth
-        ) {
+        // 就是空的）永远发不出请求，代理层只能一直失败。
+        //
+        // 只对官方协议回落——第三方中转服务缺 base_url 仍然要报错，否则请求会被悄悄发去
+        // api.anthropic.com。判断**不能**走 self.provider_type()：它会经 is_github_copilot
+        // 再调回本函数，直接把栈打爆。这两个判断都只读字段。
+        let talks_to_anthropic = self.is_anthropic_oauth(provider)
+            || provider.category.as_deref() == Some("official");
+        if talks_to_anthropic {
             return Ok(ProviderType::Claude.default_endpoint().to_string());
         }
 
