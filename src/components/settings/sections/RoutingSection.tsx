@@ -123,13 +123,14 @@ export function RoutingSection({ onOpenApp }: RoutingSectionProps) {
       queryFn: () => proxyApi.getAppMode(app),
     })),
   });
+  const { data: desktop } = useProvidersQuery("claude-desktop");
   const providerQueries = {
     claude: useProvidersQuery("claude").data,
+    "claude-desktop": desktop,
     codex: useProvidersQuery("codex").data,
     gemini: useProvidersQuery("gemini").data,
     grokbuild: useProvidersQuery("grokbuild").data,
   };
-  const { data: desktop } = useProvidersQuery("claude-desktop");
   const desktopCurrent = desktop?.providers[desktop.currentProviderId];
   const desktopMapping = desktopCurrent
     ? providerNeedsRouting("claude-desktop", desktopCurrent)

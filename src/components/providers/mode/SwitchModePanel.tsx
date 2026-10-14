@@ -70,6 +70,8 @@ interface SwitchModePanelProps extends ListCallbacks {
   onNeedsRouteHandled?: () => void;
   /** 正在看的那格变了：新增 / 编辑供应商按它选表单布局。需要是稳定的回调 */
   onViewChange?: (app: ProxyAppId, view: AppMode) => void;
+  /** 模式行下面、滚动区上面的附加条（Claude Desktop 的接入状态条用）。 */
+  banner?: React.ReactNode;
 }
 
 /** Gemini CLI、Grok Build 没有聚合模式（Q6）：那一格隐藏，前两格位置不变。 */
