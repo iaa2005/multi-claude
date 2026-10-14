@@ -817,6 +817,115 @@ mod tests {
         assert_eq!(allocate_key(&mut stack, &custom_icon), "acme");
     }
 
+    // =====================================================================
+    // Claude Desktop 聚合 id
+    // =====================================================================
+
+    /// 生成的 id 必须过 Claude Desktop 的 fail-all validator，否则整组模型被拒收。
+    #[test]
+    fn desktop_ids_pass_the_fail_all_validator() {
+        let cases = [
+            encode_desktop("deepseek", DESKTOP_DEFAULT_ROLE, "deepseek-v4-flash"),
+            encode_desktop("mimo", "opus", "mimo-v2.6-pro"),
+            encode_desktop("anthropic", "haiku", "claude-haiku-4-5"),
+            encode_desktop("a", "fable", "claude-fable-5"),
+            // 角色不在白名单时回退，生成的 id 仍要合法。
+            encode_desktop("a", "mythos", "whatever"),
+            encode_desktop("a", "", "whatever"),
+        ];
+        for id in cases {
+            assert!(
+                crate::claude_desktop_config::is_claude_safe_model_id(&id),
+                "id rejected by the fail-all validator: {id}"
+            );
+        }
+    }
+
+    /// 官方模型名虽然也是 `claude-` + 角色开头，但没有 `--`，必须当普通模型名处理。
+    /// 判成 Malformed 会让所有官方模型被拒收。
+    #[test]
+    fn official_model_names_stay_plain_on_desktop() {
+        for id in [
+            "claude-sonnet-5",
+            "claude-opus-5",
+            "claude-haiku-4-5",
+            "claude-fable-5",
+            "claude-opus-4-8",
+            "anthropic/claude-sonnet-5",
+        ] {
+            assert_eq!(
+                decode(&AppType::ClaudeDesktop, id),
+                Decoded::Plain,
+                "official id was not treated as a plain model name: {id}"
+            );
+        }
+    }
+
+    #[test]
+    fn desktop_ids_round_trip() {
+        let id = encode_desktop("deepseek", DESKTOP_DEFAULT_ROLE, "deepseek-v4-flash");
+        assert_eq!(id, "claude-sonnet-deepseek--deepseek-v4-flash");
+        assert_eq!(
+            decode(&AppType::ClaudeDesktop, &id),
+            Decoded::Stack {
+                key: "deepseek",
+                model: "deepseek-v4-flash",
+                one_m: false,
+            }
+        );
+    }
+
+    /// key 里不会有 `--`（`slug` 保证），所以按第一个 `--` 切；模型名里可以继续带 `--`。
+    #[test]
+    fn desktop_ids_keep_dashes_in_the_model_name() {
+        let id = encode_desktop("acme", "opus", "some--weird--model");
+        assert_eq!(
+            decode(&AppType::ClaudeDesktop, &id),
+            Decoded::Stack {
+                key: "acme",
+                model: "some--weird--model",
+                one_m: false,
+            }
+        );
+    }
+
+    /// 前缀和角色的大小写不影响解码（id 是我们生成的小写，但用户可能手填）。
+    #[test]
+    fn desktop_decode_is_case_insensitive() {
+        let id = "Claude-SONNET-DeepSeek--m1";
+        assert_eq!(
+            decode(&AppType::ClaudeDesktop, id),
+            Decoded::Stack {
+                key: "DeepSeek",
+                model: "m1",
+                one_m: false,
+            }
+        );
+    }
+
+    /// 切不出 key/模型的残缺 id 报 Malformed，客户端收到明确错误而不是被默认路由接管。
+    #[test]
+    fn desktop_malformed_ids_report_unknown() {
+        assert_eq!(
+            decode(&AppType::ClaudeDesktop, "claude-sonnet-deepseek--"),
+            Decoded::Malformed
+        );
+        assert_eq!(
+            decode(&AppType::ClaudeDesktop, "claude-sonnet---model"),
+            Decoded::Malformed
+        );
+    }
+
+    #[test]
+    fn desktop_roles_normalize_to_the_whitelist() {
+        assert_eq!(normalize_desktop_role("opus"), "opus");
+        assert_eq!(normalize_desktop_role("opus-"), "opus");
+        assert_eq!(normalize_desktop_role("  HAIKU "), "haiku");
+        // mythos 在 validator 白名单里，但我们不发布它。
+        assert_eq!(normalize_desktop_role("mythos"), DESKTOP_DEFAULT_ROLE);
+        assert_eq!(normalize_desktop_role(""), DESKTOP_DEFAULT_ROLE);
+    }
+
     #[test]
     fn keys_never_contain_the_separators_and_stay_short() {
         for text in ["a--b", "a/b", "--edge--", "UPPER__lower", &"x".repeat(80)] {
