@@ -12,6 +12,7 @@
 //! - `transform`: 格式转换
 
 mod adapter;
+pub mod anthropic_oauth;
 mod auth;
 mod claude;
 mod codex;
@@ -96,6 +97,8 @@ pub enum ProviderType {
     CodexOAuth,
     /// xAI Grok OAuth（需要 Anthropic ↔ Responses API 转换）
     XaiOAuth,
+    /// Anthropic claude.ai 账号 OAuth（1P 连接，Bearer + oauth beta，无需 API key）
+    AnthropicOAuth,
 }
 
 impl ProviderType {
@@ -120,6 +123,7 @@ impl ProviderType {
     pub fn default_endpoint(&self) -> &'static str {
         match self {
             ProviderType::Claude | ProviderType::ClaudeAuth => "https://api.anthropic.com",
+            ProviderType::AnthropicOAuth => "https://api.anthropic.com",
             ProviderType::Codex => "https://api.openai.com",
             ProviderType::Gemini | ProviderType::GeminiCli => {
                 "https://generativelanguage.googleapis.com"
@@ -231,6 +235,7 @@ impl ProviderType {
             ProviderType::GitHubCopilot => "github_copilot",
             ProviderType::CodexOAuth => "codex_oauth",
             ProviderType::XaiOAuth => "xai_oauth",
+            ProviderType::AnthropicOAuth => "anthropic_oauth",
         }
     }
 }
@@ -257,6 +262,8 @@ impl std::str::FromStr for ProviderType {
             }
             "codex_oauth" | "codex-oauth" | "codexoauth" => Ok(ProviderType::CodexOAuth),
             "xai_oauth" | "xai-oauth" | "xaioauth" => Ok(ProviderType::XaiOAuth),
+            "anthropic_oauth" | "anthropic-oauth" | "anthropicoauth" | "claude_oauth"
+            | "claude-oauth" => Ok(ProviderType::AnthropicOAuth),
             _ => Err(format!("Invalid provider type: {s}")),
         }
     }
@@ -280,6 +287,7 @@ pub fn get_adapter_for_provider_type(provider_type: &ProviderType) -> Box<dyn Pr
     match provider_type {
         ProviderType::Claude
         | ProviderType::ClaudeAuth
+        | ProviderType::AnthropicOAuth
         | ProviderType::OpenRouter
         | ProviderType::GitHubCopilot
         | ProviderType::CodexOAuth

@@ -2243,6 +2243,21 @@ impl RequestForwarder {
                 }
             }
 
+            // Anthropic OAuth（claude.ai 账号的 1P 连接）：读 `~/.claude/.credentials.json`
+            // 拿 access token，过期时用 refresh_token 刷新。不需要 API key。
+            if auth.strategy == AuthStrategy::AnthropicOAuth {
+                match crate::proxy::providers::anthropic_oauth::access_token().await {
+                    Ok(token) => {
+                        auth = AuthInfo::new(token, AuthStrategy::AnthropicOAuth);
+                        log::debug!("[AnthropicOAuth] using claude.ai access token");
+                    }
+                    Err(error) => {
+                        log::error!("[AnthropicOAuth] failed to get access token: {error}");
+                        return Err(error);
+                    }
+                }
+            }
+
             for secret in std::iter::once(&auth.api_key).chain(auth.access_token.iter()) {
                 if !secret.is_empty() && !log_secrets.contains(secret) {
                     log_secrets.push(secret.clone());

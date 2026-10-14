@@ -135,6 +135,16 @@ pub enum AuthStrategy {
     ///
     /// access token 由 xAI Device Code 流程获取并由 forwarder 动态注入。
     XaiOAuth,
+
+    /// Anthropic OAuth（claude.ai 账号登录，即 Claude Code / Claude Desktop 的「1P 连接」）
+    ///
+    /// - Header: `Authorization: Bearer <access_token>`
+    /// - Header: `anthropic-beta: oauth-2025-04-20`
+    ///
+    /// OAuth token 走 `Authorization: Bearer`，不是 `x-api-key`。token 来自
+    /// `~/.claude/.credentials.json`（Claude Code 登录时写入，scope 含 `user:inference`），
+    /// 由 forwarder 动态读取并在过期时用 refresh_token 刷新。不需要 API key。
+    AnthropicOAuth,
 }
 
 #[cfg(test)]

@@ -499,6 +499,11 @@ impl ClaudeAdapter {
             return ProviderType::XaiOAuth;
         }
 
+        // 检测 Anthropic claude.ai OAuth（1P 连接）
+        if self.is_anthropic_oauth(provider) {
+            return ProviderType::AnthropicOAuth;
+        }
+
         // 检测 GitHub Copilot
         if self.is_github_copilot(provider) {
             return ProviderType::GitHubCopilot;
@@ -529,6 +534,18 @@ impl ClaudeAdapter {
 
     fn is_xai_oauth(&self, provider: &Provider) -> bool {
         provider.is_xai_oauth()
+    }
+
+    /// 检测是否为 Anthropic claude.ai OAuth 供应商（1P 连接）。
+    ///
+    /// 标记是 `meta.provider_type == "anthropic_oauth"`，和 codex_oauth 一致。token 不在
+    /// provider 里，转发时从 `~/.claude/.credentials.json` 动态取。
+    fn is_anthropic_oauth(&self, provider: &Provider) -> bool {
+        provider
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.provider_type.as_deref())
+            == Some("anthropic_oauth")
     }
 
     /// 检测是否为 GitHub Copilot 供应商
@@ -726,6 +743,11 @@ impl ProviderAdapter for ClaudeAdapter {
             return Ok(super::XAI_API_BASE_URL.to_string());
         }
 
+        // Anthropic claude.ai OAuth: 1P 连接固定打官方端点。
+        if self.is_anthropic_oauth(provider) {
+            return Ok(ProviderType::AnthropicOAuth.default_endpoint().to_string());
+        }
+
         // 1. 从 env 中获取
         if let Some(env) = provider.settings_config.get("env") {
             if let Some(url) = env.get("ANTHROPIC_BASE_URL").and_then(|v| v.as_str()) {
@@ -756,6 +778,17 @@ impl ProviderAdapter for ClaudeAdapter {
             .and_then(|v| v.as_str())
         {
             return Ok(url.trim_end_matches('/').to_string());
+        }
+
+        // Anthropic Messages 协议的默认上游就是官方 API。这里过去直接报
+        // 「Claude Provider 缺少 base_url 配置」，于是内置的 official 供应商（env 本来
+        // 就是空的）永远发不出请求，代理层只能一直失败。只对官方协议回落——第三方中转
+        // 服务缺 base_url 仍然要报错，否则请求会被悄悄发去 api.anthropic.com。
+        if matches!(
+            self.provider_type(provider),
+            ProviderType::Claude | ProviderType::AnthropicOAuth
+        ) {
+            return Ok(ProviderType::Claude.default_endpoint().to_string());
         }
 
         Err(ProxyError::ConfigError(
@@ -789,6 +822,16 @@ impl ProviderAdapter for ClaudeAdapter {
             return Some(AuthInfo::new(
                 "xai_oauth_placeholder".to_string(),
                 AuthStrategy::XaiOAuth,
+            ));
+        }
+
+        // Anthropic claude.ai OAuth 同样用占位符：真实 access_token 由 forwarder 从
+        // `~/.claude/.credentials.json` 动态取。这里**不能**走 extract_key——1P 连接
+        // 根本没有 API key。
+        if provider_type == ProviderType::AnthropicOAuth {
+            return Some(AuthInfo::new(
+                "anthropic_oauth_placeholder".to_string(),
+                AuthStrategy::AnthropicOAuth,
             ));
         }
 
@@ -936,6 +979,18 @@ impl ProviderAdapter for ClaudeAdapter {
             }
             AuthStrategy::XaiOAuth => {
                 vec![(HeaderName::from_static("authorization"), hv(&bearer)?)]
+            }
+            AuthStrategy::AnthropicOAuth => {
+                // OAuth token 走 Bearer，不是 x-api-key。oauth beta 是强制的：没有它
+                // api.anthropic.com 按 API key 认证，会 401。access token 由 forwarder
+                // 动态注入到 auth.api_key（和 CodexOAuth 一样）。
+                vec![
+                    (HeaderName::from_static("authorization"), hv(&bearer)?),
+                    (
+                        HeaderName::from_static("anthropic-beta"),
+                        HeaderValue::from_static("oauth-2025-04-20"),
+                    ),
+                ]
             }
             AuthStrategy::GitHubCopilot => {
                 super::copilot_auth::build_copilot_request_headers(&auth.api_key)?
