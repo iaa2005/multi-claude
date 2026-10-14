@@ -157,6 +157,24 @@ fn strip_prefix_offset(haystack: &str, prefix: &str) -> Option<usize> {
     head.eq_ignore_ascii_case(prefix.as_bytes()).then_some(prefix.len())
 }
 
+/// 从 Desktop 聚合 id 里取出角色段（`sonnet`/`opus`/`haiku`/`fable`）。
+///
+/// 角色决定这个模型在 Claude Desktop 里顶哪一档（`anthropicFamilyTier`），也决定了 id 能不能
+/// 过 fail-all validator。id 开头没有角色段时（拼错的名字）退回默认角色。
+pub fn desktop_role(id: &str) -> &'static str {
+    let Some(rest_start) = strip_prefix_offset(id, DESKTOP_PREFIX) else {
+        return DESKTOP_DEFAULT_ROLE;
+    };
+    let rest = &id[rest_start..];
+    DESKTOP_ROLES
+        .iter()
+        .find_map(|role| {
+            strip_prefix_offset(rest, role)
+                .map(|_| normalize_desktop_role(&role[..role.len() - 1]))
+        })
+        .unwrap_or(DESKTOP_DEFAULT_ROLE)
+}
+
 /// 解码的结果。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Decoded<'a> {
@@ -741,6 +759,10 @@ pub struct StackModelView {
     pub upstream: String,
     /// 1M 上下文能力（Desktop 用 `supports1m` 字段，id 里不带标记）。
     pub supports_1m: bool,
+    /// 这个模型顶哪一档（`anthropicFamilyTier`）。只有 Claude Desktop 的聚合 id 带角色，
+    /// Claude Code 的 id 不分档，为 `None`。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tier: Option<&'static str>,
 }
 
 /// 给前端：名单里的一家。
@@ -795,11 +817,15 @@ pub fn member_views(app: &AppType, members: &[Member]) -> Vec<StackMemberView> {
             let models = match app {
                 AppType::Claude | AppType::ClaudeDesktop => published_models(app, std::slice::from_ref(member))
                     .into_iter()
-                    .map(|model| StackModelView {
-                        id: model.id,
-                        display_name: model.display_name,
-                        upstream: model.upstream,
-                        supports_1m: model.one_m,
+                    .map(|model| {
+                        let tier = matches!(app, AppType::ClaudeDesktop).then(|| desktop_role(&model.id));
+                        StackModelView {
+                            id: model.id,
+                            display_name: model.display_name,
+                            upstream: model.upstream,
+                            supports_1m: model.one_m,
+                            tier,
+                        }
                     })
                     .collect(),
                 _ => Vec::new(),
@@ -958,6 +984,22 @@ mod tests {
         // mythos 在 validator 白名单里，但我们不发布它。
         assert_eq!(normalize_desktop_role("mythos"), DESKTOP_DEFAULT_ROLE);
         assert_eq!(normalize_desktop_role(""), DESKTOP_DEFAULT_ROLE);
+    }
+
+    /// 角色段就是 `anthropicFamilyTier`，读错整档就错位。
+    #[test]
+    fn desktop_role_comes_from_the_id() {
+        for role in DESKTOP_ROLES {
+            let expected = normalize_desktop_role(role);
+            let id = encode_desktop("acme", expected, "m");
+            assert_eq!(desktop_role(&id), expected, "id: {id}");
+        }
+        // 官方模型名也带角色段，读出来的就是它自己那一档。
+        assert_eq!(desktop_role("claude-opus-5"), "opus");
+        assert_eq!(desktop_role("claude-fable-5"), "fable");
+        // 开头没有角色段（拼错的名字）退回默认档。
+        assert_eq!(desktop_role("claude-bogus-thing"), DESKTOP_DEFAULT_ROLE);
+        assert_eq!(desktop_role("not-a-claude-id"), DESKTOP_DEFAULT_ROLE);
     }
 
     #[test]

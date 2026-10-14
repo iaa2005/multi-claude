@@ -86,6 +86,9 @@ export function AggregatedModelsPanel({
                       title={model.id}
                       className="rounded-chip bg-panel px-1.5 py-0.5 text-2xs text-fg-2"
                     >
+                      {model.tier && (
+                        <span className="text-fg-3">{model.tier} · </span>
+                      )}
                       {model.displayName}
                       {model.supports1m ? " · 1M" : ""}
                     </span>

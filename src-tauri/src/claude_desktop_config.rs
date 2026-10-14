@@ -715,6 +715,10 @@ pub fn stack_model_list_response(models: &[crate::mode::stack::StackModel]) -> V
             if model.one_m {
                 item["supports1m"] = json!(true);
             }
+            // 这个模型顶哪一档：id 里的角色段就是档位，显式声明一遍，Claude Desktop 才知道
+            // 光名字（`claude-sonnet-…`）猜不出来的别名该归哪一档。
+            item["anthropicFamilyTier"] =
+                json!(crate::mode::stack::desktop_role(&model.id));
             item
         })
         .collect();

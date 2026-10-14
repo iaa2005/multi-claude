@@ -93,6 +93,8 @@ export interface ProxyStackModel {
   upstream: string;
   /** 1M 上下文能力。 */
   supports1m: boolean;
+  /** 这个模型顶哪一档（`anthropicFamilyTier`）。只有 Claude Desktop 的聚合 id 带角色。 */
+  tier?: string;
 }
 
 /**
