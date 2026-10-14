@@ -33,7 +33,9 @@ pub struct DeviceStore {
 
 impl DeviceStore {
     pub fn for_device() -> Self {
-        Self::at(crate::config::get_home_dir().join(".cc-switch"))
+        // MultiClaude 的设备目录不和官方 CC Switch 共用：live-state.json 记着谁在接管哪些
+        // 客户端配置，两个应用写同一个文件会互相覆盖对方的接管状态。
+        Self::at(crate::config::get_home_dir().join(crate::config::APP_CONFIG_DIR_NAME))
     }
 
     pub fn at(root: impl Into<PathBuf>) -> Self {

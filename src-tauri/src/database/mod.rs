@@ -33,6 +33,11 @@ mod tests;
 
 // DAO 类型导出供外部使用
 pub use dao::custom_icons::{CustomIconEntry, CUSTOM_ICONS_KEY};
+/// 本地代理的默认端口。
+///
+/// 不用上游的 15721：那是官方 CC Switch 的默认值，两个应用同时跑会抢同一个端口。schema.rs
+/// 里的 `DEFAULT` 字面量必须跟这里一致（那里写的是 SQL 文本，取不到这个常量）。
+pub const DEFAULT_PROXY_PORT: u16 = 15723;
 pub(crate) use dao::providers_seed::{
     is_official_seed_id, CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID, CODEX_OFFICIAL_PROVIDER_ID,
     GROKBUILD_OFFICIAL_PROVIDER_ID,

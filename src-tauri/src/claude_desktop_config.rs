@@ -17,8 +17,13 @@ use crate::mode::operation::{self, FileChange};
 use crate::mode::state::{self, PendingTarget};
 use crate::provider::{ClaudeDesktopMode, Provider};
 
-pub const PROFILE_ID: &str = "00000000-0000-4000-8000-000000157210";
-pub const PROFILE_NAME: &str = "CC Switch";
+/// MultiClaude 在 Claude Desktop 的 `configLibrary` 里的 profile id。
+///
+/// 必须和官方 CC Switch 的（`…-000000157210`，末段是它的端口号）不同：两边都会写
+/// `configLibrary/_meta.json` 的 `appliedId`，同一个 id 就会互相覆盖对方选中的 profile。
+/// 这里末段照抄自己的默认端口 15723。
+pub const PROFILE_ID: &str = "00000000-0000-4000-8000-000000157230";
+pub const PROFILE_NAME: &str = "MultiClaude";
 
 #[cfg(any(target_os = "macos", windows, target_os = "linux", test))]
 const CONFIG_FILE: &str = "claude_desktop_config.json";
@@ -1751,7 +1756,10 @@ mod tests {
         let profile: Value = read_json_file(&paths.profile_path).expect("read profile");
         assert_eq!(
             profile["inferenceGatewayBaseUrl"],
-            json!("http://127.0.0.1:15721/claude-desktop")
+            json!(format!(
+                "http://127.0.0.1:{}/claude-desktop",
+                crate::database::DEFAULT_PROXY_PORT
+            ))
         );
         assert_eq!(profile["inferenceGatewayAuthScheme"], json!("bearer"));
         assert_eq!(profile["coworkEgressAllowedHosts"], json!(["*"]));
@@ -1785,7 +1793,10 @@ mod tests {
             let profile: Value = read_json_file(&paths.profile_path).expect("read profile");
             assert_eq!(
                 profile["inferenceGatewayBaseUrl"],
-                json!("http://127.0.0.1:15721/claude-desktop")
+                json!(format!(
+                "http://127.0.0.1:{}/claude-desktop",
+                crate::database::DEFAULT_PROXY_PORT
+            ))
             );
             assert_eq!(
                 profile["inferenceModels"],

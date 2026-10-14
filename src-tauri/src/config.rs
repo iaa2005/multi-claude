@@ -309,50 +309,23 @@ pub fn get_claude_settings_path() -> PathBuf {
     settings
 }
 
-/// 获取应用配置目录路径 (~/.cc-switch)
+/// 配置目录名。MultiClaude 不用上游的 `.cc-switch`：那是官方 CC Switch 的，两者共用会让
+/// 数据库、live-state.json 和备份互相覆盖。
+pub const APP_CONFIG_DIR_NAME: &str = ".multiclaude";
+
+/// 获取应用配置目录路径 (~/.multiclaude)
 pub fn get_app_config_dir() -> PathBuf {
     if let Some(custom) = crate::app_store::get_app_config_dir_override() {
         return custom;
     }
 
-    let default_dir = get_home_dir().join(".cc-switch");
-
-    // 兼容 v3.10.3：当用户环境存在 `HOME` 且与真实用户目录不同，
-    // v3.10.3 可能在 `HOME/.cc-switch/` 下创建/使用了数据库。
-    // 这里仅在“默认位置没有数据库”时回退到旧位置，避免再次出现“供应商消失”问题，
-    // 同时也避免新安装因为 `HOME` 被设置而写入非预期路径。
+    // MultiClaude 用独立目录，不和官方 CC Switch 共用 `~/.cc-switch/`：两者的数据库、
+    // live-state.json 和备份互相覆盖，同时跑会互相写坏状态。
     //
-    // `CC_SWITCH_TEST_HOME` 是测试用的显式 home 覆盖，必须在这里短路：测试的临时
-    // 目录本来就不带 cc-switch.db，若不先返回，下面的 HOME 回退会把测试指向真实
-    // 用户库（Windows 上 runner 的 HOME 下常常确实有该 db），既污染用户数据，又让
-    // 隔离测试读到别人写的状态而失败。
-    #[cfg(windows)]
-    if test_home_override().is_some() {
-        return default_dir;
-    }
-
-    #[cfg(windows)]
-    {
-        let default_db = default_dir.join("cc-switch.db");
-        if !default_db.exists() {
-            if let Ok(home_env) = std::env::var("HOME") {
-                let trimmed = home_env.trim();
-                if !trimmed.is_empty() {
-                    let legacy_dir = PathBuf::from(trimmed).join(".cc-switch");
-                    if legacy_dir.join("cc-switch.db").exists() {
-                        log::info!(
-                            "Detected v3.10.3 legacy database at {}, using it instead of {}",
-                            legacy_dir.display(),
-                            default_dir.display()
-                        );
-                        return legacy_dir;
-                    }
-                }
-            }
-        }
-    }
-
-    default_dir
+    // 上游那套 v3.10.3 的 `HOME/.cc-switch` 回退在这里去掉了。它是给旧布局迁移用的，
+    // 而 MultiClaude 从来没有过那种布局——留着反而会在 `HOME` 被设置时把本应用指到
+    // 官方 CC Switch 的数据库上。
+    get_home_dir().join(APP_CONFIG_DIR_NAME)
 }
 
 /// 获取应用配置文件路径
@@ -1009,9 +982,11 @@ mod tests {
 
     /// 回归：`CC_SWITCH_TEST_HOME` 必须盖过 v3.10.3 的 `HOME` 兼容回退。
     ///
-    /// Windows 上回退只看"默认位置有没有 cc-switch.db"，而测试临时目录里通常没有，
-    /// 于是会被引向 `HOME/.cc-switch`——runner 的 HOME 下往往真有一份 db，测试就此
-    /// 读写到真实用户数据（既污染用户库，又让断言读到别人写下的状态）。
+    /// Windows 上 `HOME` 指向别处且那里有一份旧库时，配置目录不得被带跑。
+    ///
+    /// 上游有条 v3.10.3 的 `HOME/.cc-switch` 回退，MultiClaude 把它去掉了——留着会把本应用
+    /// 指到官方 CC Switch 的数据库上。这条断言是防止那条回退被人重新加回来：测试临时目录里
+    /// 没有 db，正好是回退会触发的形状。
     #[cfg(windows)]
     #[test]
     #[serial_test::serial]
@@ -1045,7 +1020,7 @@ mod tests {
             None => std::env::remove_var("HOME"),
         }
 
-        let expected = test_home.path().join(".cc-switch");
+        let expected = test_home.path().join(APP_CONFIG_DIR_NAME);
         assert_eq!(
             dir, expected,
             "测试 home 优先：不得回退到 HOME 下的旧库目录"

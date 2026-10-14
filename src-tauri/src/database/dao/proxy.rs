@@ -5,7 +5,7 @@
 use crate::error::AppError;
 use crate::proxy::types::*;
 
-use super::super::{lock_conn, Database};
+use super::super::{lock_conn, Database, DEFAULT_PROXY_PORT};
 
 pub(crate) const PRICING_SOURCE_RESPONSE: &str = "response";
 pub(crate) const PRICING_SOURCE_REQUEST: &str = "request";
@@ -57,7 +57,7 @@ impl Database {
                 Ok(GlobalProxyConfig {
                     proxy_enabled: false,
                     listen_address: "127.0.0.1".to_string(),
-                    listen_port: 15721,
+                    listen_port: DEFAULT_PROXY_PORT,
                     enable_logging: true,
                 })
             }
