@@ -1120,6 +1120,152 @@ mod tests {
         }
     }
 
+    /// 端到端：Anthropic（API key）+ DeepSeek + MiMo 同时进聚合。
+    ///
+    /// Claude 模型和第三方模型必须同框出现在 Desktop 的模型表里；每条 id 都要过 app.asar
+    /// 的黑名单（`passes_desktop_gateway_check`），否则选择器整组为空、一个模型都不剩。
+    #[test]
+    fn desktop_aggregation_merges_anthropic_with_third_party() {
+        let anthropic = desktop_provider(
+            "anthropic-api",
+            "Anthropic API",
+            &[
+                ("claude-opus-5", "claude-opus-5-5"),
+                ("claude-sonnet-5", "claude-sonnet-5-5"),
+                ("claude-haiku-4-5", "claude-haiku-5-5"),
+            ],
+        );
+        let deepseek = desktop_provider(
+            "deepseek",
+            "DeepSeek",
+            &[
+                ("claude-opus-5", "deepseek-v4-pro"),
+                ("claude-haiku-4-5", "deepseek-flash"),
+            ],
+        );
+        let mimo = desktop_provider("mimo", "Xiaomi MiMo", &[("claude-opus-5", "mimo-v2.6-pro")]);
+
+        let members = [
+            desktop_member("anthropic", anthropic),
+            desktop_member("deepseek", deepseek),
+            desktop_member("mimo", mimo),
+        ];
+        let models = published_models(&AppType::ClaudeDesktop, &members);
+        let labels: Vec<&str> = models.iter().map(|model| model.name.as_str()).collect();
+
+        // 3 + 2 + 1：三家都发布到了
+        assert_eq!(models.len(), 6, "{labels:?}");
+        // 同一张表里既有 Claude，也有第三方
+        for want in [
+            "claude-opus-5-5",
+            "claude-sonnet-5-5",
+            "claude-haiku-5-5",
+            "deepseek-v4-pro",
+            "deepseek-flash",
+            "mimo-v2.6-pro",
+        ] {
+            assert!(labels.contains(&want), "{want} missing from {labels:?}");
+        }
+        for model in &models {
+            // 过 app.asar 黑名单：没过的选择器里根本不出现
+            assert!(
+                passes_desktop_gateway_check(&model.id),
+                "Desktop would drop it: {}",
+                model.id
+            );
+            // id 里不能出现真实名字——黑名单就是拿名字匹配的
+            for word in ["deepseek", "mimo", "claude-opus-5-5"] {
+                assert!(!model.id.contains(word), "id leaks {word}: {}", model.id);
+            }
+        }
+    }
+
+    /// 三家的模型按 id 各回各家，上游名不被哈希段带偏；官方模型名不被聚合吃掉。
+    #[test]
+    fn desktop_aggregation_routes_each_model_to_its_own_provider() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = DeviceStore::at(dir.path());
+        let db = Database::memory().unwrap();
+
+        let anthropic = desktop_provider(
+            "anthropic-api",
+            "Anthropic API",
+            &[
+                ("claude-opus-5", "claude-opus-5-5"),
+                ("claude-haiku-4-5", "claude-haiku-5-5"),
+            ],
+        );
+        let deepseek = desktop_provider(
+            "deepseek",
+            "DeepSeek",
+            &[
+                ("claude-opus-5", "deepseek-v4-pro"),
+                ("claude-haiku-4-5", "deepseek-flash"),
+            ],
+        );
+        let mimo = desktop_provider("mimo", "Xiaomi MiMo", &[("claude-opus-5", "mimo-v2.6-pro")]);
+        for row in [&anthropic, &deepseek, &mimo] {
+            db.save_provider("claude-desktop", row).unwrap();
+        }
+        state::update(&store, |live| {
+            let desktop = live.apps.entry("claude-desktop".to_string()).or_default();
+            desktop.mode = Some(state::Mode::Proxy);
+            let stack = &mut desktop.stack;
+            stack.enabled = true;
+            stack.members = ["anthropic-api", "deepseek", "mimo"]
+                .map(str::to_string)
+                .to_vec();
+            for (key, provider_id) in [
+                ("anthropic", "anthropic-api"),
+                ("deepseek", "deepseek"),
+                ("mimo", "mimo"),
+            ] {
+                stack.keys.insert(key.to_string(), provider_id.to_string());
+            }
+        })
+        .unwrap();
+        let fx = Fixture {
+            _dir: dir,
+            store,
+            db,
+        };
+
+        for (key, provider_id, routes) in [
+            (
+                "anthropic",
+                "anthropic-api",
+                vec![
+                    ("claude-opus-5", "claude-opus-5-5"),
+                    ("claude-haiku-4-5", "claude-haiku-5-5"),
+                ],
+            ),
+            (
+                "deepseek",
+                "deepseek",
+                vec![
+                    ("claude-opus-5", "deepseek-v4-pro"),
+                    ("claude-haiku-4-5", "deepseek-flash"),
+                ],
+            ),
+            ("mimo", "mimo", vec![("claude-opus-5", "mimo-v2.6-pro")]),
+        ] {
+            for (route_id, upstream) in routes {
+                let id = encode_desktop(key, desktop_role(route_id), upstream);
+                let (got_provider, got_upstream, original) =
+                    hit(resolve_in(&fx, AppType::ClaudeDesktop, &id));
+                assert_eq!(got_provider, provider_id, "{id}");
+                assert_eq!(got_upstream, upstream, "{id}");
+                assert_eq!(original, id);
+            }
+        }
+
+        // 官方模型名照旧走默认路由，不被聚合接管
+        assert!(matches!(
+            resolve_in(&fx, AppType::ClaudeDesktop, "claude-sonnet-5"),
+            Resolved::Plain
+        ));
+    }
+
     /// 路由 id 决定档位：配在 opus 档的模型发布成 opus 档，不是一律 sonnet。
     #[test]
     fn desktop_models_keep_the_route_tier() {
