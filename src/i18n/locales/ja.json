@@ -4201,6 +4201,13 @@
       "direct": "直接接続：CC Switch はリクエストに一切関与せず、クライアントが選んだプロバイダーに直接つながる、最もネイティブな使い方です。",
       "route": "ルーティング：リクエストはこのマシンの CC Switch を経由し、プロバイダーのホットスイッチ、フェイルオーバー、フォーマット変換などの高度な機能が使えます。",
       "stack": "集約：複数のプロバイダーのモデルが /model に並び、クライアント内でシームレスに切り替えられます。"
+    },
+    "stack": {
+      "aggregatedModels": "集約されたモデル（{{count}}）",
+      "aggregatedMembers": "{{count}} 件のプロバイダー",
+      "defaultProvider": "デフォルト",
+      "modelCount": "{{count}} 件のモデル",
+      "modelsFromCatalog": "モデル一覧はプロバイダー自身のカタログから取得されます"
     }
   },
   "providerCard": {

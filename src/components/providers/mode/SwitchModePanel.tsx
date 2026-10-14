@@ -38,6 +38,7 @@ import { APP_DISPLAY_NAME } from "@/components/shell/AppGlyph";
 import { ModeTabs } from "./ModeTabs";
 import { ModeDialog, type ModeDialogState } from "./ModeDialog";
 import { RouteSettingsSheet } from "./RouteSettingsSheet";
+import { AggregatedModelsPanel } from "./AggregatedModelsPanel";
 
 type ListCallbacks = Pick<
   React.ComponentProps<typeof ProviderList>,
@@ -95,6 +96,7 @@ export function SwitchModePanel({
   needsRouteRequest,
   onNeedsRouteHandled,
   onViewChange,
+  banner,
   ...listCallbacks
 }: SwitchModePanelProps) {
   const { t } = useTranslation();
@@ -540,6 +542,7 @@ export function SwitchModePanel({
         }
         searchSlotRef={setSearchSlot}
       />
+      {banner}
       <div
         ref={scrollRef}
         id="main-content"
@@ -549,6 +552,12 @@ export function SwitchModePanel({
           <div role="status" className="mb-3 flex flex-col gap-2">
             {notices}
           </div>
+        )}
+        {view === "stack" && (
+          <AggregatedModelsPanel
+            members={stack?.members ?? []}
+            providers={providers}
+          />
         )}
         <ProviderList
           {...listCallbacks}

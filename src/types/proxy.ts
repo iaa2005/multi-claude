@@ -77,8 +77,22 @@ export interface StartupAttachFailure {
 export interface ProxyStackMember {
   providerId: string;
   modelIds: string[];
+  /** 发布的模型明细。Codex 的模型由目录条目描述，这里为空。 */
+  models?: ProxyStackModel[];
   /** 这家是默认那家（代理路由）：模型走默认路由，`modelIds` 等默认换到别家后才发布。 */
   route: boolean;
+}
+
+/** Stack 里一家发布的一个模型。 */
+export interface ProxyStackModel {
+  /** 发布给客户端的 id（带保留前缀）。 */
+  id: string;
+  /** 选择器里显示的名字：`<显示名>（<供应商名>）`。 */
+  displayName: string;
+  /** 发往上游的模型名。 */
+  upstream: string;
+  /** 1M 上下文能力。 */
+  supports1m: boolean;
 }
 
 /**

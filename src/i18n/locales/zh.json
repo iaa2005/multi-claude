@@ -4201,6 +4201,13 @@
       "direct": "直连：CC Switch 不经手任何请求，客户端直接连所选供应商，体验最原生。",
       "route": "路由：请求经本机 CC Switch 转发，可热切换供应商，并支持故障转移、格式转换等高级功能。",
       "stack": "聚合：多家供应商的模型同列在 /model，在客户端内即可无感切换。"
+    },
+    "stack": {
+      "aggregatedModels": "聚合的模型（{{count}}）",
+      "aggregatedMembers": "{{count}} 家供应商",
+      "defaultProvider": "默认",
+      "modelCount": "{{count}} 个模型",
+      "modelsFromCatalog": "模型列表来自该供应商自己的目录"
     }
   },
   "providerCard": {

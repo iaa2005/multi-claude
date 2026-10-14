@@ -4175,6 +4175,13 @@
       "direct": "Doğrudan: CC Switch isteklerinize müdahale etmez; istemci, seçtiğiniz sağlayıcıyla kendi yerel özelliklerini kullanarak doğrudan iletişim kurar.",
       "route": "Yönlendirme: İstekler bu bilgisayardaki CC Switch üzerinden geçer; anında sağlayıcı değiştirme, yedek sağlayıcıya geçiş, biçim dönüştürme ve diğer gelişmiş özellikleri kullanabilirsiniz.",
       "stack": "Birleştirme: Farklı sağlayıcıların modelleri /model içinde birlikte listelenir; istemci içinde modeller arasında kesintisiz geçiş yapabilirsiniz."
+    },
+    "stack": {
+      "aggregatedModels": "Toplanan modeller ({{count}})",
+      "aggregatedMembers": "{{count}} sağlayıcı",
+      "defaultProvider": "varsayılan",
+      "modelCount": "{{count}} model",
+      "modelsFromCatalog": "Model listesi sağlayıcının kendi kataloğundan gelir"
     }
   },
   "providerCard": {

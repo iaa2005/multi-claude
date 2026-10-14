@@ -4201,6 +4201,13 @@
       "direct": "Direct: CC Switch never touches your requests; the client talks to the chosen provider itself for the most native experience.",
       "route": "Routing: requests go through CC Switch on this machine, unlocking hot-switching providers, failover, format conversion, and other advanced features.",
       "stack": "Aggregation: models from several providers sit together in /model, so you can switch between them seamlessly inside the client."
+    },
+    "stack": {
+      "aggregatedModels": "Aggregated models ({{count}})",
+      "aggregatedMembers": "{{count}} providers",
+      "defaultProvider": "default",
+      "modelCount": "{{count}} models",
+      "modelsFromCatalog": "Model list comes from the provider's own catalog"
     }
   },
   "providerCard": {

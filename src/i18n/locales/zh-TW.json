@@ -4202,6 +4202,13 @@
       "direct": "直連：CC Switch 不經手任何請求，用戶端直接連所選供應商，體驗最原生。",
       "route": "路由：請求經本機 CC Switch 轉發，可熱切換供應商，並支援故障轉移、格式轉換等進階功能。",
       "stack": "聚合：多家供應商的模型同列在 /model，在用戶端內即可無感切換。"
+    },
+    "stack": {
+      "aggregatedModels": "聚合的模型（{{count}}）",
+      "aggregatedMembers": "{{count}} 家供應商",
+      "defaultProvider": "預設",
+      "modelCount": "{{count}} 個模型",
+      "modelsFromCatalog": "模型清單來自該供應商自己的目錄"
     }
   },
   "providerCard": {

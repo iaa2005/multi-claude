@@ -729,6 +729,20 @@ pub fn resolve(
     })))
 }
 
+/// 给前端：Stack 里一家发布的一个模型。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StackModelView {
+    /// 发布给客户端的 id（带保留前缀）。
+    pub id: String,
+    /// 选择器里显示的名字：`<显示名>（<供应商名>）`。
+    pub display_name: String,
+    /// 发往上游的模型名。
+    pub upstream: String,
+    /// 1M 上下文能力（Desktop 用 `supports1m` 字段，id 里不带标记）。
+    pub supports_1m: bool,
+}
+
 /// 给前端：名单里的一家。
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -736,6 +750,9 @@ pub struct StackMemberView {
     pub provider_id: String,
     /// 发布给客户端的模型 id。
     pub model_ids: Vec<String>,
+    /// 发布的模型明细（显示名、上游名）。Codex 的模型由目录条目描述，这里为空。
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub models: Vec<StackModelView>,
     /// 这家是默认那家（代理路由）。Claude 的照常发布，第一个模型同时占着四档别名；Codex 的
     /// 模型是默认路由的目录行，`model_ids` 为空，默认换到别家后才带前缀发布。
     pub route: bool,
@@ -769,13 +786,30 @@ pub struct StackView {
     pub stale_revision: Option<String>,
 }
 
-pub fn member_views(members: &[Member]) -> Vec<StackMemberView> {
+/// 给前端：名单里每家发布什么。`models` 只对 Claude / Claude Desktop 填——Codex 的模型由
+/// 目录条目描述（`codex_config::plan_codex_stack_catalog`），不是这里发布的。
+pub fn member_views(app: &AppType, members: &[Member]) -> Vec<StackMemberView> {
     members
         .iter()
-        .map(|member| StackMemberView {
-            provider_id: member.provider.id.clone(),
-            model_ids: member.model_ids.clone(),
-            route: member.route,
+        .map(|member| {
+            let models = match app {
+                AppType::Claude | AppType::ClaudeDesktop => published_models(app, std::slice::from_ref(member))
+                    .into_iter()
+                    .map(|model| StackModelView {
+                        id: model.id,
+                        display_name: model.display_name,
+                        upstream: model.upstream,
+                        supports_1m: model.one_m,
+                    })
+                    .collect(),
+                _ => Vec::new(),
+            };
+            StackMemberView {
+                provider_id: member.provider.id.clone(),
+                model_ids: member.model_ids.clone(),
+                models,
+                route: member.route,
+            }
         })
         .collect()
 }
@@ -1262,7 +1296,10 @@ mod tests {
 
         // 界面上标出路由那家，它的模型 id 照常列出。
         let views =
-            member_views(&super::members(&fx.db, &AppType::Claude, &stack, Some("kimi")).unwrap());
+            member_views(
+                &AppType::Claude,
+                &super::members(&fx.db, &AppType::Claude, &stack, Some("kimi")).unwrap(),
+            );
         let route_flags: Vec<(&str, bool, usize)> = views
             .iter()
             .map(|view| (view.provider_id.as_str(), view.route, view.model_ids.len()))

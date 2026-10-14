@@ -1309,6 +1309,14 @@ function App() {
               list.filter((failure) => failure.appType !== proxyAppId),
             )
           }
+          banner={
+            proxyAppId === "claude-desktop" ? (
+              <DesktopAccessBar
+                current={providers[currentProviderId]}
+                onOpenRoutingSettings={() => openSettings("routing")}
+              />
+            ) : undefined
+          }
           {...listCallbacks}
         />
       );
@@ -1321,12 +1329,6 @@ function App() {
         className="min-h-0 flex-1 overflow-y-auto scroll-stable overflow-x-hidden px-6 pb-12 pt-4"
       >
         <div className="space-y-4">
-          {activeApp === "claude-desktop" && (
-            <DesktopAccessBar
-              current={providers[currentProviderId]}
-              onOpenRoutingSettings={() => openSettings("routing")}
-            />
-          )}
           <ProviderList
             {...listCallbacks}
             providers={providers}
