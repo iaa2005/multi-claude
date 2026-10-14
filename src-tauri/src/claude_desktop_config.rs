@@ -698,6 +698,45 @@ pub fn model_list_response(provider: &Provider) -> Result<Value, AppError> {
     }))
 }
 
+/// 聚合（Stack）模式下 `/v1/models` 的响应：所有成员的模型一起发布，Claude Desktop 侧只看
+/// 到一个 provider。`display_name` 带着供应商名，选择器里才分得清是哪一家的。
+pub fn stack_model_list_response(models: &[crate::mode::stack::StackModel]) -> Value {
+    let data: Vec<Value> = models
+        .iter()
+        .map(|model| {
+            let mut item = json!({
+                "type": "model",
+                "id": model.id,
+                "display_name": model.display_name,
+                "description": model.description,
+                "created_at": DEFAULT_CREATED_AT,
+            });
+            // Desktop 的 id 不带 `[1M]` 后缀，能力走这个字段。
+            if model.one_m {
+                item["supports1m"] = json!(true);
+            }
+            item
+        })
+        .collect();
+    let first_id = data
+        .first()
+        .and_then(|item| item.get("id"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let last_id = data
+        .last()
+        .and_then(|item| item.get("id"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+
+    json!({
+        "data": data,
+        "has_more": false,
+        "first_id": first_id,
+        "last_id": last_id,
+    })
+}
+
 pub fn map_proxy_request_model(mut body: Value, provider: &Provider) -> Result<Value, AppError> {
     let requested_raw = body
         .get("model")

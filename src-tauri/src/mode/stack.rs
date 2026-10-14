@@ -37,6 +37,19 @@ const CLAUDE_SEPARATOR: &str = "--";
 /// Codex 的 Stack 模型 id：`ccs-<key>/<model>`。
 const CODEX_PREFIX: &str = "ccs-";
 const CODEX_SEPARATOR: char = '/';
+/// Claude Desktop 的 Stack 模型 id：`claude-<role>-<key>--<model>`。
+///
+/// 和 Claude Code 的 `ccs-claude-*` 刻意不同：Desktop 的 id 必须过
+/// `claude_desktop_config::is_claude_safe_model_id`。Claude Desktop 1.12603.1+ 的 fail-all
+/// validator 按角色白名单校验，一个不过的 id 会让**整组**模型被拒收。所以角色排在最前，
+/// provider key 和模型名跟在角色后面。
+const DESKTOP_PREFIX: &str = "claude-";
+const DESKTOP_SEPARATOR: &str = "--";
+/// Desktop id 允许的角色段（含结尾 `-`），顺序即回填顺序。必须和 fail-all validator 的
+/// 白名单 `["sonnet","opus","haiku","fable","mythos"]` 一致；mythos 官方未公开发布，不暴露。
+const DESKTOP_ROLES: [&str; 4] = ["sonnet-", "opus-", "haiku-", "fable-"];
+/// 没有配置角色时的默认角色。
+pub const DESKTOP_DEFAULT_ROLE: &str = "sonnet";
 
 /// key 的最大长度：只是为了模型 id 不至于太长。
 const KEY_MAX_LEN: usize = 24;
@@ -46,7 +59,7 @@ pub const CLAUDE_DEFAULT_WINDOW: u64 = 200_000;
 
 /// 支持 Stack 模型的应用。
 pub fn supports_stack(app: &AppType) -> bool {
-    matches!(app, AppType::Claude | AppType::Codex)
+    matches!(app, AppType::Claude | AppType::Codex | AppType::ClaudeDesktop)
 }
 
 /// 给 `provider` 一个 key：登记过就用原来的（移除后重新加入，旧会话里的 id 继续有效），
@@ -108,11 +121,40 @@ fn slug(text: &str) -> String {
 pub fn encode(app: &AppType, key: &str, model: &str, one_m: bool) -> String {
     match app {
         AppType::Codex => format!("{CODEX_PREFIX}{key}{CODEX_SEPARATOR}{model}"),
+        AppType::ClaudeDesktop => encode_desktop(key, DESKTOP_DEFAULT_ROLE, model),
         _ => {
             let marker = if one_m { ONE_M_MARKER_FOR_CLIENT } else { "" };
             format!("{CLAUDE_PREFIX}{key}{CLAUDE_SEPARATOR}{model}{marker}")
         }
     }
+}
+
+/// Claude Desktop 的 Stack 模型 id：`claude-<role>-<key>--<model>`。
+///
+/// `role` 不在白名单里就退回 [`DESKTOP_DEFAULT_ROLE`]，保证生成的 id 一定过
+/// `is_claude_safe_model_id`。1M 不写进 id（Desktop 的 schema 不接受 `[1M]` 后缀），
+/// 能力由 `inferenceModels` / `/v1/models` 的 `supports1m` 字段表达。
+pub fn encode_desktop(key: &str, role: &str, model: &str) -> String {
+    format!(
+        "{DESKTOP_PREFIX}{}-{key}{DESKTOP_SEPARATOR}{model}",
+        normalize_desktop_role(role)
+    )
+}
+
+/// 取出白名单里对应的角色名（不带结尾 `-`）。找不到就用默认角色。
+pub fn normalize_desktop_role(role: &str) -> &'static str {
+    let wanted = role.trim().trim_end_matches('-').to_ascii_lowercase();
+    DESKTOP_ROLES
+        .iter()
+        .map(|entry| entry.trim_end_matches('-'))
+        .find(|bare| *bare == wanted)
+        .unwrap_or(DESKTOP_DEFAULT_ROLE)
+}
+
+/// 大小写无关地切掉前缀，返回剩下的起始字节偏移；不是这个前缀则 `None`。
+fn strip_prefix_offset(haystack: &str, prefix: &str) -> Option<usize> {
+    let head = haystack.as_bytes().get(..prefix.len())?;
+    head.eq_ignore_ascii_case(prefix.as_bytes()).then_some(prefix.len())
 }
 
 /// 解码的结果。
@@ -134,6 +176,7 @@ pub enum Decoded<'a> {
 /// 按客户端的格式解码模型 id。Claude：`ccs-claude-` 开头；Codex：`ccs-` 开头且含 `/`。
 pub fn decode<'a>(app: &AppType, id: &'a str) -> Decoded<'a> {
     let (rest, separator, one_m) = match app {
+        AppType::ClaudeDesktop => return decode_desktop(id),
         AppType::Claude => {
             let Some(rest) = id.strip_prefix(CLAUDE_PREFIX) else {
                 return Decoded::Plain;
@@ -157,6 +200,37 @@ pub fn decode<'a>(app: &AppType, id: &'a str) -> Decoded<'a> {
             Decoded::Stack { key, model, one_m }
         }
         _ => Decoded::Malformed,
+    }
+}
+
+/// 解开 Claude Desktop 的聚合 id：`claude-<role>-<key>--<model>`。
+///
+/// 官方模型名（`claude-sonnet-5`、`claude-haiku-4-5`）虽然也是 `claude-` + 角色开头，但没有
+/// `--`，按普通模型名走默认路由（[`Decoded::Plain`]）——不能判成 Malformed，否则官方模型全
+/// 被拒收。key 里不会出现 `--`（[`slug`] 保证），所以按**第一个** `--` 切开，模型名里可以
+/// 继续带 `--`。
+fn decode_desktop(id: &str) -> Decoded<'_> {
+    let Some(rest_start) = strip_prefix_offset(id, DESKTOP_PREFIX) else {
+        return Decoded::Plain;
+    };
+    let rest = &id[rest_start..];
+    let Some(tail_start) = DESKTOP_ROLES
+        .iter()
+        .find_map(|role| strip_prefix_offset(rest, role))
+    else {
+        return Decoded::Plain;
+    };
+    let Some((key, model)) = rest[tail_start..].split_once(DESKTOP_SEPARATOR) else {
+        return Decoded::Plain;
+    };
+    if key.is_empty() || model.is_empty() {
+        return Decoded::Malformed;
+    }
+    // Desktop 的 id 不带 1M 标记，能力走 `supports1m` 字段。
+    Decoded::Stack {
+        key,
+        model,
+        one_m: false,
     }
 }
 
@@ -193,6 +267,36 @@ pub fn claude_models(key: &str, provider: &Provider) -> Vec<StackModel> {
         None => claude_env(provider).map(mapped_models).unwrap_or_default(),
     };
     stack_models(key, provider, found)
+}
+
+/// Claude Desktop 行发布的模型：取该行的模型路由（`meta.claude_desktop_model_routes`），
+/// id 走 [`encode_desktop`]。upstream 就是路由的上游模型名——Desktop 的 id 不带 1M 标记，
+/// 能力由 `supports_1m` 单独表达。
+pub fn desktop_models(key: &str, provider: &Provider) -> Vec<StackModel> {
+    let Ok(routes) = crate::claude_desktop_config::proxy_model_routes(provider) else {
+        return Vec::new();
+    };
+    routes
+        .into_iter()
+        .map(|route| {
+            let upstream = strip_one_m_suffix_for_upstream(&route.upstream_model)
+                .trim()
+                .to_string();
+            let name = route
+                .label_override
+                .filter(|label| !label.trim().is_empty())
+                .unwrap_or_else(|| upstream.clone());
+            StackModel {
+                id: encode_desktop(key, DESKTOP_DEFAULT_ROLE, &upstream),
+                display_name: display_name(&name, &provider.name),
+                name,
+                description: model_description(&upstream, 0),
+                upstream,
+                one_m: route.supports_1m,
+                window: 0,
+            }
+        })
+        .collect()
 }
 
 /// 行里要发布的一个模型（还没加前缀）。
@@ -371,6 +475,10 @@ fn model_ids_of(app: &AppType, key: &str, provider: &Provider, route: bool) -> V
             .into_iter()
             .map(|model| model.id)
             .collect(),
+        AppType::ClaudeDesktop => desktop_models(key, provider)
+            .into_iter()
+            .map(|model| model.id)
+            .collect(),
         AppType::Codex if !route => codex_model_ids(key, provider),
         _ => Vec::new(),
     }
@@ -447,6 +555,32 @@ pub fn claude_published(members: &[Member]) -> Vec<StackModel> {
         .collect()
 }
 
+/// 任意应用的这些成员发布给客户端的模型，按名单顺序。Desktop 和 Claude Code 的 id 格式
+/// 不同，见 [`encode_desktop`]。
+pub fn published_models(app: &AppType, members: &[Member]) -> Vec<StackModel> {
+    members
+        .iter()
+        .flat_map(|member| match app {
+            AppType::ClaudeDesktop => desktop_models(&member.key, &member.provider),
+            _ => claude_models(&member.key, &member.provider),
+        })
+        .collect()
+}
+
+/// 任意应用现在发布的 Stack 模型：代理模式下按已落定的名单和路由算，不在代理模式时没有。
+pub fn published_now(db: &Database, app: AppType) -> Result<Vec<StackModel>, AppError> {
+    let store = DeviceStore::for_device();
+    let mode = state::mode_state(&store, app.as_str())?;
+    if !mode.is_proxy() {
+        return Ok(Vec::new());
+    }
+    let stack = state::stack(&store, app.as_str())?;
+    Ok(published_models(
+        &app,
+        &published_members(db, &app, &stack, mode.proxy_route.as_deref())?,
+    ))
+}
+
 /// 默认那家（路由）列表里的第一个模型：Stack 模式下 Claude Code 的四档别名（启动默认、后台
 /// 任务、子代理别名）都指向它。列表的顺序就是模型映射的顺序（`ANTHROPIC_MODEL` 在前），
 /// 所以没配列表的行用的是它的主模型。路由那家不在发布的成员里（Stack 模式关着、它没有模型）
@@ -482,19 +616,7 @@ pub fn is_member(app: &AppType, provider_id: &str) -> Result<bool, AppError> {
 
 /// Claude Code 现在发布的 Stack 模型：代理模式下按已落定的名单和路由算，不在代理模式时没有。
 pub fn claude_published_now(db: &Database) -> Result<Vec<StackModel>, AppError> {
-    let app = AppType::Claude;
-    let store = DeviceStore::for_device();
-    let mode = state::mode_state(&store, app.as_str())?;
-    if !mode.is_proxy() {
-        return Ok(Vec::new());
-    }
-    let stack = state::stack(&store, app.as_str())?;
-    Ok(claude_published(&published_members(
-        db,
-        &app,
-        &stack,
-        mode.proxy_route.as_deref(),
-    )?))
+    published_now(db, AppType::Claude)
 }
 
 /// 选中 Stack 模型的请求要发往的那一家。
@@ -580,6 +702,12 @@ pub fn resolve(
     // 行里已经没有这个模型时照原样发（上游自己决定认不认）。Codex 的 id 就是行里的模型名。
     let upstream_model = match app {
         AppType::Claude => claude_models(key, &provider)
+            .into_iter()
+            .find(|published| {
+                strip_one_m_suffix_for_upstream(&published.upstream).trim() == model_part
+            })
+            .map(|published| published.upstream),
+        AppType::ClaudeDesktop => desktop_models(key, &provider)
             .into_iter()
             .find(|published| {
                 strip_one_m_suffix_for_upstream(&published.upstream).trim() == model_part

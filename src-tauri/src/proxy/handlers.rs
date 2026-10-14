@@ -269,6 +269,17 @@ pub async fn handle_claude_desktop_models(
     headers: axum::http::HeaderMap,
 ) -> Result<Json<Value>, ProxyError> {
     validate_claude_desktop_gateway_auth(&state, &headers)?;
+    // 聚合（Stack）模式：把所有成员的模型一起发布。Claude Desktop 只连到我们这一个
+    // gateway，所以它那边看到的是一个 provider 下的完整清单，增删成员不用重启。
+    if crate::mode::stack::stack_mode_now(&AppType::ClaudeDesktop) {
+        let models =
+            crate::mode::stack::published_now(&state.db, AppType::ClaudeDesktop)
+                .map_err(|e| ProxyError::DatabaseError(e.to_string()))?;
+        return Ok(Json(crate::claude_desktop_config::stack_model_list_response(
+            &models,
+        )));
+    }
+    // 路由（单供应商）模式：保持原行为。
     let providers = state
         .provider_router
         .select_providers("claude-desktop")
