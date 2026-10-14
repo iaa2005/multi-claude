@@ -542,7 +542,7 @@ export function SwitchModePanel({
         }
         searchSlotRef={setSearchSlot}
       />
-      {banner}
+      {banner && <div className="shrink-0 px-6 pt-3">{banner}</div>}
       <div
         ref={scrollRef}
         id="main-content"

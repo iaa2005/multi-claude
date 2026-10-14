@@ -418,7 +418,7 @@ pub(crate) fn write_live_for_state(
     }
 
     if matches!(app_type, AppType::ClaudeDesktop) {
-        crate::claude_desktop_config::apply_provider(db, provider)?;
+        crate::claude_desktop_config::reapply_current(db, provider)?;
         log::info!(
             "Claude Desktop 3P profile '{}' written for provider '{}'",
             crate::claude_desktop_config::PROFILE_ID,

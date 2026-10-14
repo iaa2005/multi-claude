@@ -156,6 +156,53 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
     icon: "anthropic",
     iconColor: "#D4915D",
   },
+  {
+    // 用 Anthropic Console 的 API Key 走代理：和 Official（切回 Desktop 自带 1P）不同，
+    // 它是普通的代理成员，可以和 DeepSeek、MiMo 等一起放进聚合（Stack）。
+    // 不用 claude.ai 订阅的 OAuth token：它只允许 Anthropic 自家客户端使用。
+    // 分类不能是 official——表单会把 official 当成「切回 1P」，清掉模型路由。
+    name: "Anthropic API",
+    websiteUrl: "https://console.anthropic.com",
+    apiKeyUrl: "https://console.anthropic.com/settings/keys",
+    category: "third_party",
+    baseUrl: "https://api.anthropic.com",
+    apiKeyField: "ANTHROPIC_API_KEY",
+    mode: "proxy",
+    apiFormat: "anthropic",
+    modelRoutes: [
+      {
+        routeId: CLAUDE_DESKTOP_ROLE_ROUTE_IDS.opus,
+        upstreamModel: "claude-opus-5-5",
+        labelOverride: "Claude Opus 5.5",
+        supports1m: true,
+      },
+      {
+        routeId: CLAUDE_DESKTOP_ROLE_ROUTE_IDS.sonnet,
+        upstreamModel: "claude-sonnet-5-5",
+        labelOverride: "Claude Sonnet 5.5",
+        supports1m: true,
+      },
+      {
+        routeId: CLAUDE_DESKTOP_ROLE_ROUTE_IDS.fable,
+        upstreamModel: "claude-fable-5-1",
+        labelOverride: "Claude Fable 5.1",
+        supports1m: true,
+      },
+      {
+        routeId: CLAUDE_DESKTOP_ROLE_ROUTE_IDS.haiku,
+        upstreamModel: "claude-haiku-5-5",
+        labelOverride: "Claude Haiku 5.5",
+        supports1m: false,
+      },
+    ],
+    theme: {
+      icon: "claude",
+      backgroundColor: "#D97757",
+      textColor: "#FFFFFF",
+    },
+    icon: "anthropic",
+    iconColor: "#D4915D",
+  },
   // ===== 赞助商预设：文件顺序与 README 赞助商表对齐（仅维护约定；应用内一律按显示名排序，不置顶）=====
   {
     name: "Kimi",

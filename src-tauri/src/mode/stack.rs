@@ -44,7 +44,6 @@ const CODEX_SEPARATOR: char = '/';
 /// validator 按角色白名单校验，一个不过的 id 会让**整组**模型被拒收。所以角色排在最前，
 /// provider key 和模型名跟在角色后面。
 const DESKTOP_PREFIX: &str = "claude-";
-const DESKTOP_SEPARATOR: &str = "--";
 /// Desktop id 允许的角色段（含结尾 `-`），顺序即回填顺序。必须和 fail-all validator 的
 /// 白名单 `["sonnet","opus","haiku","fable","mythos"]` 一致；mythos 官方未公开发布，不暴露。
 const DESKTOP_ROLES: [&str; 4] = ["sonnet-", "opus-", "haiku-", "fable-"];
@@ -129,16 +128,38 @@ pub fn encode(app: &AppType, key: &str, model: &str, one_m: bool) -> String {
     }
 }
 
-/// Claude Desktop 的 Stack 模型 id：`claude-<role>-<key>--<model>`。
+/// Claude Desktop 的 Stack 模型 id：`claude-<role>-k<6 位数字>m<8 位数字>`。
 ///
-/// `role` 不在白名单里就退回 [`DESKTOP_DEFAULT_ROLE`]，保证生成的 id 一定过
-/// `is_claude_safe_model_id`。1M 不写进 id（Desktop 的 schema 不接受 `[1M]` 后缀），
-/// 能力由 `inferenceModels` / `/v1/models` 的 `supports1m` 字段表达。
+/// 数字是 provider key 和上游模型名的稳定哈希，id 里**不能**出现真实名字：Desktop 的
+/// gateway 模型校验（app.asar 里的 `So`）先拿一张第三方模型名黑名单匹配 id——deepseek、
+/// mimo、glm、qwen、kimi、gpt……命中就把这个模型从选择器里删掉，不报错，只在日志里留下
+/// `picker = 0`。只用数字也是为了这个：十六进制都可能拼出黑名单里的 `abab`。真实名字放在
+/// `display_name`（Desktop 的 `labelOverride`），那里不校验。
+///
+/// `role` 不在白名单里就退回 [`DESKTOP_DEFAULT_ROLE`]。1M 不写进 id，能力由 `/v1/models`
+/// 的 `supports_1m` 字段表达。
 pub fn encode_desktop(key: &str, role: &str, model: &str) -> String {
     format!(
-        "{DESKTOP_PREFIX}{}-{key}{DESKTOP_SEPARATOR}{model}",
-        normalize_desktop_role(role)
+        "{DESKTOP_PREFIX}{}-{DESKTOP_KEY_MARK}{:06}{DESKTOP_MODEL_MARK}{:08}",
+        normalize_desktop_role(role),
+        desktop_hash(key) % 1_000_000,
+        desktop_hash(&model.trim().to_ascii_lowercase()) % 100_000_000,
     )
+}
+
+const DESKTOP_KEY_MARK: char = 'k';
+const DESKTOP_MODEL_MARK: char = 'm';
+
+/// FNV-1a：跨进程、跨版本稳定（`DefaultHasher` 不保证），旧会话里的 id 重启后还能解。
+fn desktop_hash(text: &str) -> u64 {
+    text.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+        (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3)
+    })
+}
+
+/// key 的哈希段（和 [`encode_desktop`] 里写进 id 的一致）。
+fn desktop_key_digits(key: &str) -> String {
+    format!("{:06}", desktop_hash(key) % 1_000_000)
 }
 
 /// 取出白名单里对应的角色名（不带结尾 `-`）。找不到就用默认角色。
@@ -238,16 +259,23 @@ fn decode_desktop(id: &str) -> Decoded<'_> {
     else {
         return Decoded::Plain;
     };
-    let Some((key, model)) = rest[tail_start..].split_once(DESKTOP_SEPARATOR) else {
+    let tail = &rest[tail_start..];
+    let bytes = tail.as_bytes();
+    // k + 6 位 + m + 8 位。官方名（`claude-sonnet-5`、`claude-haiku-4-5-20251001`）不是这个
+    // 形状，照旧当普通模型名。
+    let shaped = bytes.len() == 16
+        && bytes[0].eq_ignore_ascii_case(&(DESKTOP_KEY_MARK as u8))
+        && bytes[7].eq_ignore_ascii_case(&(DESKTOP_MODEL_MARK as u8))
+        && bytes[1..7].iter().all(u8::is_ascii_digit)
+        && bytes[8..].iter().all(u8::is_ascii_digit);
+    if !shaped {
         return Decoded::Plain;
-    };
-    if key.is_empty() || model.is_empty() {
-        return Decoded::Malformed;
     }
-    // Desktop 的 id 不带 1M 标记，能力走 `supports1m` 字段。
+    // Desktop 的 id 不带 1M 标记，能力走 `supports_1m` 字段。key、model 都是哈希段，
+    // 由 [`resolve`] 对着名单还原。
     Decoded::Stack {
-        key,
-        model,
+        key: &tail[1..7],
+        model: &tail[8..],
         one_m: false,
     }
 }
@@ -290,29 +318,38 @@ pub fn claude_models(key: &str, provider: &Provider) -> Vec<StackModel> {
 /// Claude Desktop 行发布的模型：取该行的模型路由（`meta.claude_desktop_model_routes`），
 /// id 走 [`encode_desktop`]。upstream 就是路由的上游模型名——Desktop 的 id 不带 1M 标记，
 /// 能力由 `supports_1m` 单独表达。
+///
+/// 角色取自路由 id（`claude-opus-5` → opus），这家的模型在 Desktop 里才落在配置的那一档。
+/// 几个角色指向同一个上游模型时（MiMo 三档全是 `mimo-v2.6-pro`）只发布一次：不去重的话
+/// 它们 id 相同或者在选择器里重复出现。路由按 id 排好序，所以留下哪一档是确定的。
 pub fn desktop_models(key: &str, provider: &Provider) -> Vec<StackModel> {
     let Ok(routes) = crate::claude_desktop_config::proxy_model_routes(provider) else {
         return Vec::new();
     };
+    let mut seen = std::collections::HashSet::new();
     routes
         .into_iter()
-        .map(|route| {
+        .filter_map(|route| {
             let upstream = strip_one_m_suffix_for_upstream(&route.upstream_model)
                 .trim()
                 .to_string();
+            if !seen.insert(upstream.to_ascii_lowercase()) {
+                return None;
+            }
             let name = route
                 .label_override
                 .filter(|label| !label.trim().is_empty())
                 .unwrap_or_else(|| upstream.clone());
-            StackModel {
-                id: encode_desktop(key, DESKTOP_DEFAULT_ROLE, &upstream),
-                display_name: display_name(&name, &provider.name),
+            Some(StackModel {
+                id: encode_desktop(key, desktop_role(&route.route_id), &upstream),
+                // Desktop 的选择器：名字一行只放模型，供应商放在下面那行灰字（description）。
+                display_name: name.clone(),
                 name,
-                description: model_description(&upstream, 0),
+                description: provider.name.clone(),
                 upstream,
                 one_m: route.supports_1m,
                 window: 0,
-            }
+            })
         })
         .collect()
 }
@@ -575,11 +612,23 @@ pub fn claude_published(members: &[Member]) -> Vec<StackModel> {
 
 /// 任意应用的这些成员发布给客户端的模型，按名单顺序。Desktop 和 Claude Code 的 id 格式
 /// 不同，见 [`encode_desktop`]。
+///
+/// Desktop 还要跨成员去重：两家都提供同一个上游模型（比如两个中转都有 `deepseek-v4-pro`）
+/// 时只发布名单里靠前那家的，选择器里不出现两条一样的模型。想换一家提供，就调整名单顺序。
 pub fn published_models(app: &AppType, members: &[Member]) -> Vec<StackModel> {
+    published_by_member(app, members).into_iter().flatten().collect()
+}
+
+/// 和 [`published_models`] 一样，但按成员分组（顺序与 `members` 一致），给前端名单用。
+fn published_by_member(app: &AppType, members: &[Member]) -> Vec<Vec<StackModel>> {
+    let mut seen = std::collections::HashSet::new();
     members
         .iter()
-        .flat_map(|member| match app {
-            AppType::ClaudeDesktop => desktop_models(&member.key, &member.provider),
+        .map(|member| match app {
+            AppType::ClaudeDesktop => desktop_models(&member.key, &member.provider)
+                .into_iter()
+                .filter(|model| seen.insert(model.upstream.to_ascii_lowercase()))
+                .collect(),
             _ => claude_models(&member.key, &member.provider),
         })
         .collect()
@@ -706,6 +755,17 @@ pub fn resolve(
         return Ok(Resolved::Miss(StackMiss::StackOff));
     }
     let stack = state::stack(store, app.as_str())?;
+    // Desktop 的 id 里 key 是哈希段，对着登记过的 key 还原。
+    let desktop_key = matches!(app, AppType::ClaudeDesktop)
+        .then(|| {
+            stack
+                .keys
+                .keys()
+                .find(|known| desktop_key_digits(known) == key)
+                .cloned()
+        })
+        .flatten();
+    let key = desktop_key.as_deref().unwrap_or(key);
     let Some(provider_id) = stack.keys.get(key) else {
         return Ok(Resolved::Miss(StackMiss::Unknown));
     };
@@ -725,12 +785,17 @@ pub fn resolve(
                 strip_one_m_suffix_for_upstream(&published.upstream).trim() == model_part
             })
             .map(|published| published.upstream),
-        AppType::ClaudeDesktop => desktop_models(key, &provider)
-            .into_iter()
-            .find(|published| {
-                strip_one_m_suffix_for_upstream(&published.upstream).trim() == model_part
-            })
-            .map(|published| published.upstream),
+        // Desktop 的 id 里模型名也是哈希：按整个 id 在这家发布的模型里找。找不到（行里已经
+        // 删了这个模型）就报错——哈希没法当模型名发给上游。
+        AppType::ClaudeDesktop => {
+            let Some(published) = desktop_models(key, &provider)
+                .into_iter()
+                .find(|published| published.id.eq_ignore_ascii_case(model))
+            else {
+                return Ok(Resolved::Miss(StackMiss::Unknown));
+            };
+            Some(published.upstream)
+        }
         _ => None,
     }
     .unwrap_or_else(|| {
@@ -811,11 +876,13 @@ pub struct StackView {
 /// 给前端：名单里每家发布什么。`models` 只对 Claude / Claude Desktop 填——Codex 的模型由
 /// 目录条目描述（`codex_config::plan_codex_stack_catalog`），不是这里发布的。
 pub fn member_views(app: &AppType, members: &[Member]) -> Vec<StackMemberView> {
+    let mut published = published_by_member(app, members).into_iter();
     members
         .iter()
         .map(|member| {
+            let own = published.next().unwrap_or_default();
             let models = match app {
-                AppType::Claude | AppType::ClaudeDesktop => published_models(app, std::slice::from_ref(member))
+                AppType::Claude | AppType::ClaudeDesktop => own
                     .into_iter()
                     .map(|model| {
                         let tier = matches!(app, AppType::ClaudeDesktop).then(|| desktop_role(&model.id));
@@ -830,9 +897,15 @@ pub fn member_views(app: &AppType, members: &[Member]) -> Vec<StackMemberView> {
                     .collect(),
                 _ => Vec::new(),
             };
+            // Desktop 跨成员去重过，名单上的 id 要和真正发布的一致。
+            let model_ids = if matches!(app, AppType::ClaudeDesktop) {
+                models.iter().map(|model| model.id.clone()).collect()
+            } else {
+                member.model_ids.clone()
+            };
             StackMemberView {
                 provider_id: member.provider.id.clone(),
-                model_ids: member.model_ids.clone(),
+                model_ids,
                 models,
                 route: member.route,
             }
@@ -921,59 +994,76 @@ mod tests {
         }
     }
 
+    /// Claude Desktop 的 gateway 模型校验（app.asar 里的 `So`，2.31226 版）：id 含第三方
+    /// 模型名就整条丢掉，选择器里一个都不剩。这里照抄它的黑名单和放行条件。
+    fn passes_desktop_gateway_check(id: &str) -> bool {
+        let blocked = regex::Regex::new(
+            r"ark-code|astron|command-r|deepseek|doubao|gemini|gemma|glm|gpt|grok|hermes|hy3|kimi|lfm|\bling\b|llama|longcat|mimo|minimax|mistral|mixtral|moonshot|nemotron|openai|phi-|qianfan|qwen|tc-code|\bunic\b|yi-|stepfun|step-3|seed-|bytedance|hunyuan|granite|amazon\.nova|nova-|devstral|ministral|ernie|codex|arcee|trinity|abab|phi\d|\bk2\.|\bm2\.|jamba|arctic|solar|mercury|zamba|kat-coder|\bds-|dpsk",
+        )
+        .unwrap();
+        let id = id.to_ascii_lowercase();
+        !blocked.is_match(&id)
+            && ["claude", "sonnet", "opus", "haiku", "fable", "mythos", "anthropic"]
+                .iter()
+                .any(|word| id.contains(word))
+    }
+
+    /// 第三方模型的 id 不能带真实名字，否则 Desktop 的选择器是空的（`picker = 0`）。
+    #[test]
+    fn desktop_ids_pass_the_gateway_model_check() {
+        for (key, model) in [
+            ("deepseek", "deepseek-v4-pro"),
+            ("xiaomimimo", "mimo-v2.6-pro"),
+            ("zhipu", "glm-5"),
+            ("qwen", "qwen3-coder-plus"),
+            ("kimi", "kimi-k2.5"),
+            ("openai", "gpt-5.5"),
+        ] {
+            for role in DESKTOP_ROLES {
+                let id = encode_desktop(key, role, model);
+                assert!(passes_desktop_gateway_check(&id), "dropped by Desktop: {id}");
+            }
+        }
+    }
+
     #[test]
     fn desktop_ids_round_trip() {
-        let id = encode_desktop("deepseek", DESKTOP_DEFAULT_ROLE, "deepseek-v4-flash");
-        assert_eq!(id, "claude-sonnet-deepseek--deepseek-v4-flash");
+        let id = encode_desktop("deepseek", "opus", "deepseek-v4-flash");
+        assert!(id.starts_with("claude-opus-k"), "{id}");
+        assert_eq!(id.len(), "claude-opus-".len() + 16, "{id}");
         assert_eq!(
             decode(&AppType::ClaudeDesktop, &id),
             Decoded::Stack {
-                key: "deepseek",
-                model: "deepseek-v4-flash",
+                key: &desktop_key_digits("deepseek"),
+                model: &id[id.len() - 8..],
                 one_m: false,
             }
         );
+        // 稳定：同一家同一个模型永远是同一个 id，旧会话重启后还能用。
+        assert_eq!(id, encode_desktop("deepseek", "opus", "  DeepSeek-V4-Flash "));
     }
 
-    /// key 里不会有 `--`（`slug` 保证），所以按第一个 `--` 切；模型名里可以继续带 `--`。
-    #[test]
-    fn desktop_ids_keep_dashes_in_the_model_name() {
-        let id = encode_desktop("acme", "opus", "some--weird--model");
-        assert_eq!(
-            decode(&AppType::ClaudeDesktop, &id),
-            Decoded::Stack {
-                key: "acme",
-                model: "some--weird--model",
-                one_m: false,
-            }
-        );
-    }
-
-    /// 前缀和角色的大小写不影响解码（id 是我们生成的小写，但用户可能手填）。
+    /// 前缀和角色的大小写不影响解码。
     #[test]
     fn desktop_decode_is_case_insensitive() {
-        let id = "Claude-SONNET-DeepSeek--m1";
-        assert_eq!(
-            decode(&AppType::ClaudeDesktop, id),
-            Decoded::Stack {
-                key: "DeepSeek",
-                model: "m1",
-                one_m: false,
-            }
-        );
+        let id = encode_desktop("acme", "sonnet", "m1").to_ascii_uppercase();
+        assert!(matches!(
+            decode(&AppType::ClaudeDesktop, &id),
+            Decoded::Stack { .. }
+        ));
     }
 
-    /// 切不出 key/模型的残缺 id 报 Malformed，客户端收到明确错误而不是被默认路由接管。
+    /// 形状不对（旧版的 `--` id、位数不够）都不是我们的 id，按普通模型名走。
     #[test]
-    fn desktop_malformed_ids_report_unknown() {
-        assert_eq!(
-            decode(&AppType::ClaudeDesktop, "claude-sonnet-deepseek--"),
-            Decoded::Malformed
-        );
-        assert_eq!(
-            decode(&AppType::ClaudeDesktop, "claude-sonnet---model"),
-            Decoded::Malformed
-        );
+    fn desktop_misshaped_ids_stay_plain() {
+        for id in [
+            "claude-sonnet-deepseek--deepseek-v4-pro",
+            "claude-sonnet-k12345m12345678",
+            "claude-sonnet-k123456m1234567x",
+            "claude-sonnet-k123456m123456789",
+        ] {
+            assert_eq!(decode(&AppType::ClaudeDesktop, id), Decoded::Plain, "{id}");
+        }
     }
 
     #[test]
@@ -1000,6 +1090,130 @@ mod tests {
         // 开头没有角色段（拼错的名字）退回默认档。
         assert_eq!(desktop_role("claude-bogus-thing"), DESKTOP_DEFAULT_ROLE);
         assert_eq!(desktop_role("not-a-claude-id"), DESKTOP_DEFAULT_ROLE);
+    }
+
+    fn desktop_provider(id: &str, name: &str, routes: &[(&str, &str)]) -> Provider {
+        let mut provider = provider(id, name, None, json!({}));
+        let meta = provider.meta.get_or_insert_with(Default::default);
+        for (route_id, model) in routes {
+            meta.claude_desktop_model_routes.insert(
+                route_id.to_string(),
+                crate::provider::ClaudeDesktopModelRoute {
+                    model: model.to_string(),
+                    label_override: None,
+                    supports_1m: None,
+                },
+            );
+        }
+        provider
+    }
+
+    fn desktop_member(key: &str, provider: Provider) -> Member {
+        Member {
+            model_ids: desktop_models(key, &provider)
+                .into_iter()
+                .map(|model| model.id)
+                .collect(),
+            key: key.to_string(),
+            provider,
+            route: false,
+        }
+    }
+
+    /// 路由 id 决定档位：配在 opus 档的模型发布成 opus 档，不是一律 sonnet。
+    #[test]
+    fn desktop_models_keep_the_route_tier() {
+        let deepseek = desktop_provider(
+            "ds",
+            "DeepSeek",
+            &[
+                ("claude-opus-5", "deepseek-v4-pro"),
+                ("claude-haiku-4-5", "deepseek-flash"),
+            ],
+        );
+        let ids: Vec<String> = desktop_models("deepseek", &deepseek)
+            .into_iter()
+            .map(|model| model.id)
+            .collect();
+        assert_eq!(
+            ids,
+            vec![
+                encode_desktop("deepseek", "haiku", "deepseek-flash"),
+                encode_desktop("deepseek", "opus", "deepseek-v4-pro"),
+            ]
+        );
+    }
+
+    /// 几档指向同一个上游模型（MiMo 三档全是同一个）只发布一次。
+    #[test]
+    fn desktop_models_collapse_roles_sharing_an_upstream() {
+        let mimo = desktop_provider(
+            "mimo",
+            "Xiaomi MiMo",
+            &[
+                ("claude-sonnet-5", "mimo-v2.6-pro"),
+                ("claude-opus-5", "mimo-v2.6-pro"),
+                ("claude-haiku-4-5", "MiMo-V2.6-Pro"),
+            ],
+        );
+        let models = desktop_models("mimo", &mimo);
+        assert_eq!(models.len(), 1, "{models:?}");
+        assert_eq!(models[0].upstream, "MiMo-V2.6-Pro");
+    }
+
+    /// 两家都提供同一个模型时只发布名单靠前那家，前端名单和 `/v1/models` 一致。
+    #[test]
+    fn desktop_stack_does_not_publish_a_model_twice() {
+        let members = vec![
+            desktop_member(
+                "claude",
+                desktop_provider(
+                    "1p",
+                    "Claude 1P",
+                    &[
+                        ("claude-sonnet-5", "claude-sonnet-5"),
+                        ("claude-opus-5", "claude-opus-5"),
+                    ],
+                ),
+            ),
+            desktop_member(
+                "relay",
+                desktop_provider(
+                    "relay",
+                    "Relay",
+                    &[
+                        ("claude-sonnet-5", "claude-sonnet-5"),
+                        ("claude-haiku-4-5", "glm-5"),
+                    ],
+                ),
+            ),
+            desktop_member(
+                "deepseek",
+                desktop_provider("ds", "DeepSeek", &[("claude-opus-5", "deepseek-v4-pro")]),
+            ),
+        ];
+
+        let published: Vec<String> = published_models(&AppType::ClaudeDesktop, &members)
+            .into_iter()
+            .map(|model| model.id)
+            .collect();
+        assert_eq!(
+            published,
+            vec![
+                encode_desktop("claude", "opus", "claude-opus-5"),
+                encode_desktop("claude", "sonnet", "claude-sonnet-5"),
+                encode_desktop("relay", "haiku", "glm-5"),
+                encode_desktop("deepseek", "opus", "deepseek-v4-pro"),
+            ]
+        );
+
+        let views = member_views(&AppType::ClaudeDesktop, &members);
+        let from_views: Vec<String> = views
+            .iter()
+            .flat_map(|view| view.model_ids.iter().cloned())
+            .collect();
+        assert_eq!(from_views, published);
+        assert_eq!(views[1].models.len(), 1, "relay's duplicate sonnet is hidden");
     }
 
     #[test]

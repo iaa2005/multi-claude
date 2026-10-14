@@ -299,6 +299,10 @@ async fn resync_proxy_clients(state: &AppState) -> Result<(), String> {
 /// Claude Desktop 的模型映射卡把本地网关地址写死在 profile 里，不在 `resync_routes` 的
 /// 四个路由应用之内：服务换了地址就按当前那张卡重写一遍。
 fn resync_claude_desktop_gateway(db: &crate::database::Database) -> Result<(), String> {
+    // 聚合模式下 profile 不属于哪一家，按聚合重写。
+    if crate::mode::stack::stack_mode_now(&crate::app_config::AppType::ClaudeDesktop) {
+        return crate::claude_desktop_config::apply_aggregated(db).map_err(|e| e.to_string());
+    }
     if !crate::claude_desktop_config::current_provider_uses_proxy(db) {
         return Ok(());
     }

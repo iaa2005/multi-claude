@@ -137,6 +137,20 @@ pub fn apply_provider(db: &Database, provider: &Provider) -> Result<(), AppError
     apply_provider_to_paths(db, provider, &paths)
 }
 
+/// 按当前模式重写 profile：聚合（Stack）模式下写不带 `inferenceModels` 的 gateway profile，
+/// 否则写 `provider` 那一家的。
+///
+/// 编辑供应商、代理换地址这类「顺手重写」必须走这里：直接调 [`apply_provider`] 会把某一家
+/// 的模型表写回 profile，Claude Desktop 看到显式清单就不再问 `/v1/models`，聚合里的其他
+/// 供应商从选择器里消失。模式切换本身由 mode controller 决定写哪种，不走这里。
+pub fn reapply_current(db: &Database, provider: &Provider) -> Result<(), AppError> {
+    if crate::mode::stack::stack_mode_now(&crate::app_config::AppType::ClaudeDesktop) {
+        apply_aggregated(db)
+    } else {
+        apply_provider(db, provider)
+    }
+}
+
 pub fn get_status(db: &Database, proxy_running: bool) -> Result<ClaudeDesktopStatus, AppError> {
     if !is_supported_platform() {
         return Ok(ClaudeDesktopStatus {
@@ -716,13 +730,15 @@ pub fn stack_model_list_response(models: &[crate::mode::stack::StackModel]) -> V
                 "description": model.description,
                 "created_at": DEFAULT_CREATED_AT,
             });
-            // Desktop 的 id 不带 `[1M]` 后缀，能力走这个字段。
+            // Desktop 的模型发现只读 snake_case（`supports_1m`、`anthropic_family_tier`），
+            // camelCase 的同名字段会被静默忽略。1M 模型本来会拆成普通版和 1M 版两条，
+            // profile 里的 `modelPrefer1mContext` 让 Desktop 只留 1M 那条。
             if model.one_m {
-                item["supports1m"] = json!(true);
+                item["supports_1m"] = json!(true);
             }
             // 这个模型顶哪一档：id 里的角色段就是档位，显式声明一遍，Claude Desktop 才知道
             // 光名字（`claude-sonnet-…`）猜不出来的别名该归哪一档。
-            item["anthropicFamilyTier"] =
+            item["anthropic_family_tier"] =
                 json!(crate::mode::stack::desktop_role(&model.id));
             item
         })
@@ -814,6 +830,21 @@ pub fn map_proxy_request_model(mut body: Value, provider: &Provider) -> Result<V
         normalize_mimo_anthropic_thinking_history(&mut body);
     }
     Ok(body)
+}
+
+/// 聚合（Stack）请求的请求体：`model` 已经由 `mode::stack::resolve` 换成这家的上游名，
+/// **不能**再按 Desktop 路由查——路由表的键是 `claude-*` 路由 id，拿上游名去查只会
+/// 「模型路由未配置」，聚合里每个模型的每次请求都会 400。路由之后的请求体修正照做。
+pub fn finish_stack_request_body(mut body: Value, provider: &Provider) -> Value {
+    let upstream_model = body
+        .get("model")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    if should_normalize_mimo_anthropic_thinking_history(provider, &upstream_model) {
+        normalize_mimo_anthropic_thinking_history(&mut body);
+    }
+    body
 }
 
 fn strip_one_m_suffix_for_route_lookup(model: &str) -> &str {
@@ -1042,7 +1073,10 @@ pub fn apply_aggregated(db: &Database) -> Result<(), AppError> {
     let paths = current_platform_paths()?;
     let base_url = proxy_gateway_base_url_from_db(db)?;
     let api_key = get_or_create_gateway_token(db)?;
-    let profile = build_gateway_profile(&base_url, &api_key, None);
+    let mut profile = build_gateway_profile(&base_url, &api_key, None);
+    // 支持 1M 的模型只显示 1M 那一条，不再「普通版 + 1M 版」各一条（Desktop 3P 配置键，
+    // 热生效）。切回单家时整个 profile 按 floor 清掉重写，这个键跟着消失。
+    profile["modelPrefer1mContext"] = json!(true);
     write_gateway_profile_at_paths(&paths, profile)
 }
 
