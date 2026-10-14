@@ -44,8 +44,9 @@ use super::stack::{self, StackModel, StackView};
 use super::state::{op, Contract, Mode, ModeState, PendingTarget, StackState};
 
 /// 支持代理模式的应用。
-pub const PROXY_APPS: [AppType; 4] = [
+pub const PROXY_APPS: [AppType; 5] = [
     AppType::Claude,
+    AppType::ClaudeDesktop,
     AppType::Codex,
     AppType::Gemini,
     AppType::GrokBuild,
@@ -485,6 +486,17 @@ async fn write_proxy(
             .map_err(err)?;
             unchanged
         }
+        AppType::ClaudeDesktop => {
+            // 聚合：profile 不带 inferenceModels，模型表由 /v1/models 动态给出——增删
+            // 成员立即进模型选择器，不用重启 Desktop。路由：写那一家的模型表。
+            if stack.enabled {
+                crate::claude_desktop_config::apply_aggregated(&state.db).map_err(err)?;
+            } else {
+                crate::claude_desktop_config::apply_provider(&state.db, route).map_err(err)?;
+            }
+            commit_state(state, app, &pending(target))?;
+            false
+        }
         _ => return Err(format!("{} 不支持本地路由", app.as_str())),
     };
     Ok(!unchanged)
@@ -573,6 +585,18 @@ fn write_direct(
                 pending_target,
             )
             .map_err(err)?;
+        }
+        AppType::ClaudeDesktop => {
+            // Desktop 的配置不在 live 投影里，由 claude_desktop_config 直接写文件：
+            // 直连那家是模型卡就按它写，是官方（或没有）就退回 1P。
+            match usable_direct(app, direct.as_ref()) {
+                Some(provider) => {
+                    crate::claude_desktop_config::apply_provider(&state.db, provider)
+                        .map_err(err)?;
+                }
+                None => crate::claude_desktop_config::restore_official().map_err(err)?,
+            }
+            commit_state(state, app, &pending_target)?;
         }
         _ => return Err(format!("{} 不支持本地路由", app.as_str())),
     }

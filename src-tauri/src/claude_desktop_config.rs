@@ -1021,6 +1021,33 @@ fn apply_provider_to_paths(
         }
     };
 
+    write_gateway_profile_at_paths(paths, profile)
+}
+
+/// 聚合（Stack）模式：写 gateway profile，但**不带** `inferenceModels`。
+/// Claude Desktop 在没有显式清单时会从 `GET /v1/models` 动态发现模型，于是增删 Stack
+/// 成员立即反映到模型选择器里，不用重启 Desktop，也不用改 profile。显式清单则会把列表
+/// 冻结在写 profile 的那一刻，并且要过 fail-all validator（见
+/// [`is_claude_safe_model_id`]）。
+pub fn apply_aggregated(db: &Database) -> Result<(), AppError> {
+    let paths = current_platform_paths()?;
+    let base_url = proxy_gateway_base_url_from_db(db)?;
+    let api_key = get_or_create_gateway_token(db)?;
+    let profile = build_gateway_profile(&base_url, &api_key, None);
+    write_gateway_profile_at_paths(&paths, profile)
+}
+
+/// 切回官方 1P（mode 系统的直连写入用；`is_official_provider` 走的也是同一条）。
+pub fn restore_official() -> Result<(), AppError> {
+    let paths = current_platform_paths()?;
+    restore_official_at_paths(&paths)
+}
+
+/// 把 gateway profile 写进 Desktop 的文件组（3p 模式 + 我们的 profile + meta 条目）。
+fn write_gateway_profile_at_paths(
+    paths: &ClaudeDesktopPaths,
+    profile: Value,
+) -> Result<(), AppError> {
     let deployment = deployment_mode_patch("3p");
     let profile = gateway_profile_patch(profile);
     let meta = MetaPatch { applied: true };

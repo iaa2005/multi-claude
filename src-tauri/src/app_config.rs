@@ -448,7 +448,11 @@ impl AppType {
     pub fn supports_local_proxy(&self) -> bool {
         matches!(
             self,
-            AppType::Claude | AppType::Codex | AppType::Gemini | AppType::GrokBuild
+            AppType::Claude
+                | AppType::ClaudeDesktop
+                | AppType::Codex
+                | AppType::Gemini
+                | AppType::GrokBuild
         )
     }
 
