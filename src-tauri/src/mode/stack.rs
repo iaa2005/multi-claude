@@ -49,6 +49,14 @@ const DESKTOP_PREFIX: &str = "claude-";
 const DESKTOP_ROLES: [&str; 4] = ["sonnet-", "opus-", "haiku-", "fable-"];
 /// 没有配置角色时的默认角色。
 pub const DESKTOP_DEFAULT_ROLE: &str = "sonnet";
+/// 聚合发布的模型统一用的角色。
+///
+/// Desktop 只给认得的模型显示 effort 选择：一张按完整 id 查的官方模型表，外加
+/// `^(claude-)?(fable|mythos)(-|$)` 这条前缀规则（app.asar 里的 `L0t` / `R0t`）。聚合 id 带
+/// 哈希，进不了那张表，只有 `claude-fable-…` 能命中前缀规则拿到 low…max 的 effort；
+/// 用 sonnet/opus/haiku 的模型在选择器里就没有 effort。档位本身只影响 Desktop 的分组和
+/// 默认说明，请求按哈希路由，跟角色无关。
+pub const DESKTOP_AGGREGATED_ROLE: &str = "fable";
 
 /// key 的最大长度：只是为了模型 id 不至于太长。
 const KEY_MAX_LEN: usize = 24;
@@ -140,10 +148,10 @@ pub fn encode(app: &AppType, key: &str, model: &str, one_m: bool) -> String {
 /// 的 `supports_1m` 字段表达。
 pub fn encode_desktop(key: &str, role: &str, model: &str) -> String {
     format!(
-        "{DESKTOP_PREFIX}{}-{DESKTOP_KEY_MARK}{:06}{DESKTOP_MODEL_MARK}{:08}",
+        "{DESKTOP_PREFIX}{}-{DESKTOP_KEY_MARK}{:06}{DESKTOP_MODEL_MARK}{}",
         normalize_desktop_role(role),
         desktop_hash(key) % 1_000_000,
-        desktop_hash(&model.trim().to_ascii_lowercase()) % 100_000_000,
+        desktop_model_digits(model),
     )
 }
 
@@ -155,6 +163,14 @@ fn desktop_hash(text: &str) -> u64 {
     text.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
         (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3)
     })
+}
+
+/// 模型名的哈希段（和 [`encode_desktop`] 里写进 id 的一致）。
+fn desktop_model_digits(model: &str) -> String {
+    format!(
+        "{:08}",
+        desktop_hash(&model.trim().to_ascii_lowercase()) % 100_000_000
+    )
 }
 
 /// key 的哈希段（和 [`encode_desktop`] 里写进 id 的一致）。
@@ -319,7 +335,7 @@ pub fn claude_models(key: &str, provider: &Provider) -> Vec<StackModel> {
 /// id 走 [`encode_desktop`]。upstream 就是路由的上游模型名——Desktop 的 id 不带 1M 标记，
 /// 能力由 `supports_1m` 单独表达。
 ///
-/// 角色取自路由 id（`claude-opus-5` → opus），这家的模型在 Desktop 里才落在配置的那一档。
+/// 角色统一是 [`DESKTOP_AGGREGATED_ROLE`]，Desktop 才给 effort 选择。
 /// 几个角色指向同一个上游模型时（MiMo 三档全是 `mimo-v2.6-pro`）只发布一次：不去重的话
 /// 它们 id 相同或者在选择器里重复出现。路由按 id 排好序，所以留下哪一档是确定的。
 pub fn desktop_models(key: &str, provider: &Provider) -> Vec<StackModel> {
@@ -341,7 +357,7 @@ pub fn desktop_models(key: &str, provider: &Provider) -> Vec<StackModel> {
                 .filter(|label| !label.trim().is_empty())
                 .unwrap_or_else(|| upstream.clone());
             Some(StackModel {
-                id: encode_desktop(key, desktop_role(&route.route_id), &upstream),
+                id: encode_desktop(key, DESKTOP_AGGREGATED_ROLE, &upstream),
                 // Desktop 的选择器：名字一行只放模型，供应商放在下面那行灰字（description）。
                 display_name: name.clone(),
                 name,
@@ -785,12 +801,13 @@ pub fn resolve(
                 strip_one_m_suffix_for_upstream(&published.upstream).trim() == model_part
             })
             .map(|published| published.upstream),
-        // Desktop 的 id 里模型名也是哈希：按整个 id 在这家发布的模型里找。找不到（行里已经
-        // 删了这个模型）就报错——哈希没法当模型名发给上游。
+        // Desktop 的 id 里模型名也是哈希：按哈希在这家发布的模型里找，不看角色段——角色
+        // 只是 Desktop 的展示档位，换过档位的旧会话 id 还得能用。找不到（行里已经删了这个
+        // 模型）就报错：哈希没法当模型名发给上游。
         AppType::ClaudeDesktop => {
             let Some(published) = desktop_models(key, &provider)
                 .into_iter()
-                .find(|published| published.id.eq_ignore_ascii_case(model))
+                .find(|published| desktop_model_digits(&published.upstream) == model_part)
             else {
                 return Ok(Resolved::Miss(StackMiss::Unknown));
             };
@@ -1266,9 +1283,10 @@ mod tests {
         ));
     }
 
-    /// 路由 id 决定档位：配在 opus 档的模型发布成 opus 档，不是一律 sonnet。
+    /// 聚合模型统一发布成 fable 档：Desktop 只对 `claude-fable-…` 这种前缀的未知 id 给 effort
+    /// 选择（app.asar 的 `R0t`），别的档在选择器里没有 effort。
     #[test]
-    fn desktop_models_keep_the_route_tier() {
+    fn desktop_models_are_published_under_the_effort_capable_role() {
         let deepseek = desktop_provider(
             "ds",
             "DeepSeek",
@@ -1277,6 +1295,7 @@ mod tests {
                 ("claude-haiku-4-5", "deepseek-flash"),
             ],
         );
+        let effort_capable = regex::Regex::new(r"^(?:claude-)?(?:fable|mythos)(?:-|$)").unwrap();
         let ids: Vec<String> = desktop_models("deepseek", &deepseek)
             .into_iter()
             .map(|model| model.id)
@@ -1284,10 +1303,13 @@ mod tests {
         assert_eq!(
             ids,
             vec![
-                encode_desktop("deepseek", "haiku", "deepseek-flash"),
-                encode_desktop("deepseek", "opus", "deepseek-v4-pro"),
+                encode_desktop("deepseek", "fable", "deepseek-flash"),
+                encode_desktop("deepseek", "fable", "deepseek-v4-pro"),
             ]
         );
+        for id in &ids {
+            assert!(effort_capable.is_match(id), "no effort picker for {id}");
+        }
     }
 
     /// 几档指向同一个上游模型（MiMo 三档全是同一个）只发布一次。
@@ -1346,10 +1368,10 @@ mod tests {
         assert_eq!(
             published,
             vec![
-                encode_desktop("claude", "opus", "claude-opus-5"),
-                encode_desktop("claude", "sonnet", "claude-sonnet-5"),
-                encode_desktop("relay", "haiku", "glm-5"),
-                encode_desktop("deepseek", "opus", "deepseek-v4-pro"),
+                encode_desktop("claude", "fable", "claude-opus-5"),
+                encode_desktop("claude", "fable", "claude-sonnet-5"),
+                encode_desktop("relay", "fable", "glm-5"),
+                encode_desktop("deepseek", "fable", "deepseek-v4-pro"),
             ]
         );
 

@@ -424,8 +424,14 @@ fn dedup_app_type_match_sql(left: &str, right: &str) -> String {
 /// 注意：包裹后该列上的索引在此比较中失效，但这些都是已带时间过滤的聚合扫描，
 /// app_type 本就不是主访问路径，可接受。仅用于读侧；跨源去重使用更窄的
 /// [`dedup_app_type_match_sql`]，额度检查（`check_provider_limits`）仍保留原始精确比较。
+///
+/// MultiClaude：**不再折叠**。上游折叠的前提是「Desktop 聊天用量永远不经过本软件」，
+/// 但 MultiClaude 把 Desktop 整个接到自己的 gateway（3P 模式下 Chat、Cowork、Code 的
+/// 推理都走这里），`claude-desktop` 的行就是 Desktop 的完整用量，单列才看得清 Desktop
+/// 花了多少。函数保留成恒等式，调用点不用动，以后想改口径只改这里。跨源去重
+/// （[`dedup_app_type_match_sql`]）照旧：Desktop 内嵌 Claude Code 的会话行仍和代理行去重。
 fn folded_app_type_sql(column: &str) -> String {
-    format!("CASE WHEN {column} = 'claude-desktop' THEN 'claude' ELSE {column} END")
+    column.to_string()
 }
 
 /// SQL 片段：把日志/汇总行 LEFT JOIN 到 providers 表以取得供应商名称。
@@ -1075,7 +1081,10 @@ impl Database {
     ) -> Result<UsageSummary, AppError> {
         let conn = lock_conn!(self.conn);
         let fresh_input = fresh_input_sql("l");
-        let app_type_expr = folded_app_type_sql("l.app_type");
+        // 会话口径仍把 Desktop 折叠进 Claude Code：Desktop 里跑的就是同一个 Claude Code
+        // 会话，按会话看用量时两边的行都属于它。Dashboard 的分应用口径不折叠。
+        let app_type_expr =
+            "CASE WHEN l.app_type = 'claude-desktop' THEN 'claude' ELSE l.app_type END";
         let data_source = data_source_expr("l");
         let sql = format!(
             "SELECT
@@ -3396,7 +3405,7 @@ mod tests {
     }
 
     #[test]
-    fn test_claude_desktop_folds_into_claude_for_display() -> Result<(), AppError> {
+    fn test_claude_desktop_has_its_own_usage_bucket() -> Result<(), AppError> {
         let db = Database::memory()?;
         let ts = local_ts(2026, 6, 10, 12, 0, 0);
 
@@ -3435,34 +3444,35 @@ mod tests {
             )?;
         }
 
-        // ① 分应用汇总：desktop 折叠进 claude，不再单列 claude-desktop 桶。
+        // ① 分应用汇总：Desktop 单独一个桶（MultiClaude 的 Desktop 推理全走 gateway）。
         let by_app = db.get_usage_summary_by_app(None, None, None, None)?;
-        assert_eq!(by_app.len(), 1, "应只剩一个合并后的 claude 桶");
-        assert_eq!(by_app[0].app_type, "claude");
-        assert_eq!(by_app[0].summary.total_requests, 2, "两条行都计入 claude");
-        assert!(
-            !by_app.iter().any(|a| a.app_type == "claude-desktop"),
-            "不应再出现 claude-desktop 桶"
-        );
+        assert_eq!(by_app.len(), 2, "claude 和 claude-desktop 各一个桶");
+        for app in ["claude", "claude-desktop"] {
+            let bucket = by_app
+                .iter()
+                .find(|a| a.app_type == app)
+                .unwrap_or_else(|| panic!("缺少 {app} 桶"));
+            assert_eq!(bucket.summary.total_requests, 1, "{app}");
+        }
 
-        // ② 选中 claude 过滤：汇总应同时覆盖 desktop 行。
+        // ② 选中 claude 过滤：只算 Claude Code 自己的行。
         let claude_summary = db.get_usage_summary(None, None, Some("claude"), None, None)?;
-        assert_eq!(claude_summary.total_requests, 2);
+        assert_eq!(claude_summary.total_requests, 1);
+        let desktop_summary =
+            db.get_usage_summary(None, None, Some("claude-desktop"), None, None)?;
+        assert_eq!(desktop_summary.total_requests, 1);
 
-        // ③ 请求日志按 claude 过滤返回两行，且 desktop 行投影仍是原始 app_type。
+        // ③ 请求日志按 claude-desktop 过滤只返回 Desktop 的行。
         let logs = db.get_request_logs(
             &LogFilters {
-                app_type: Some("claude".to_string()),
+                app_type: Some("claude-desktop".to_string()),
                 ..Default::default()
             },
             0, // 页码从 0 开始
             50,
         )?;
-        assert_eq!(logs.total, 2, "claude 过滤含 desktop 行");
-        assert!(
-            logs.data.iter().any(|r| r.app_type == "claude-desktop"),
-            "详情面板需要看到真实入口，行投影不可被折叠"
-        );
+        assert_eq!(logs.total, 1);
+        assert!(logs.data.iter().all(|r| r.app_type == "claude-desktop"));
 
         // ④ 折叠不外溢：codex 过滤为空。
         let codex_summary = db.get_usage_summary(None, None, Some("codex"), None, None)?;
@@ -4114,7 +4124,7 @@ mod tests {
         Ok(())
     }
 
-    /// 最早日期：明细和日聚合取较早的一天，筛选与 Dashboard 同口径（claude 包含 claude-desktop）。
+    /// 最早日期：明细和日聚合取较早的一天，筛选与 Dashboard 同口径（claude-desktop 单独一个应用）。
     #[test]
     fn test_get_first_usage_date_spans_rollups_and_logs() -> Result<(), AppError> {
         let db = Database::memory()?;
@@ -4166,8 +4176,14 @@ mod tests {
             db.get_first_usage_date(None, None, None)?.as_deref(),
             Some("2023-12-31")
         );
+        // claude 只算自己的行（2024-03-05 的日聚合），Desktop 单独算。
         assert_eq!(
             db.get_first_usage_date(Some("claude"), None, None)?
+                .as_deref(),
+            Some("2024-03-05")
+        );
+        assert_eq!(
+            db.get_first_usage_date(Some("claude-desktop"), None, None)?
                 .as_deref(),
             Some("2023-12-31")
         );
@@ -5257,9 +5273,12 @@ mod tests {
             )?;
         }
 
-        // Folded query for "claude" matches both claude and claude-desktop
-        let stats = db.get_provider_stats(None, None, Some("claude"), None, None)?;
+        // No app filter: the same provider id stays two rows, one per app.
+        let stats = db.get_provider_stats(None, None, None, None, None)?;
         assert_eq!(stats.len(), 2);
+        // Desktop is its own app now: filtering by "claude" no longer pulls it in.
+        let claude_only = db.get_provider_stats(None, None, Some("claude"), None, None)?;
+        assert_eq!(claude_only.len(), 1);
 
         let claude_stat = stats
             .iter()

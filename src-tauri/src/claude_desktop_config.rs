@@ -1077,6 +1077,9 @@ pub fn apply_aggregated(db: &Database) -> Result<(), AppError> {
     // 支持 1M 的模型只显示 1M 那一条，不再「普通版 + 1M 版」各一条（Desktop 3P 配置键，
     // 热生效）。切回单家时整个 profile 按 floor 清掉重写，这个键跟着消失。
     profile["modelPrefer1mContext"] = json!(true);
+    // 显式打开模型发现。不写时 Desktop 只在「模型表为空」时才去问 `/v1/models`——用户在
+    // Desktop 里手加一条 Model list 就会悄悄关掉发现，聚合的其他模型全部消失。
+    profile["modelDiscoveryEnabled"] = json!(true);
     write_gateway_profile_at_paths(&paths, profile)
 }
 
@@ -1092,7 +1095,17 @@ fn write_gateway_profile_at_paths(
     profile: Value,
 ) -> Result<(), AppError> {
     let deployment = deployment_mode_patch("3p");
-    let profile = gateway_profile_patch(profile);
+    let mut profile = gateway_profile_patch(profile);
+    if !paths.profile_path.exists() {
+        // 第一次建 profile：把用户在原来那个 profile 里的设置带过来，不然 Allowed
+        // surfaces、默认 effort 这些全回到默认值，用户得在 Desktop 里重新点一遍。
+        // 以后的写入只换连接键，这些设置自然留着。
+        // 放在前面：seed 只在键缺失时写，先写的赢——用户收紧过的出站白名单不能被
+        // 我们的默认值 `["*"]` 盖掉。
+        let mut seed = inherited_profile_settings(paths);
+        seed.append(&mut profile.seed);
+        profile.seed = seed;
+    }
     let meta = MetaPatch { applied: true };
     write_desktop_files(
         paths,
@@ -1115,6 +1128,36 @@ fn write_gateway_profile_at_paths(
             },
         ],
     )
+}
+
+/// 换到 MultiClaude 的 profile 之前 Desktop 正在用的那个 profile 里的用户设置（界面、
+/// 能力开关、默认 effort……）。连接相关的键不带：`inference*` 是那个 profile 自己的
+/// 网关和凭据，跟过来会把请求发错地方。只认 `configLibrary` 里的 profile 文件。
+fn inherited_profile_settings(paths: &ClaudeDesktopPaths) -> Vec<(KeyPath, Value)> {
+    const KEEP_INFERENCE_KEYS: &[&str] = &["inferenceModelPricingEnabled"];
+    let applied = read_json_file::<Value>(&paths.meta_path)
+        .ok()
+        .and_then(|meta| meta.get("appliedId").and_then(Value::as_str).map(str::to_string));
+    let Some(applied) = applied.filter(|id| id != PROFILE_ID && is_safe_profile_id(id)) else {
+        return Vec::new();
+    };
+    let source = paths.config_library_path.join(format!("{applied}.json"));
+    let Ok(Value::Object(fields)) = read_json_file::<Value>(&source) else {
+        return Vec::new();
+    };
+    fields
+        .into_iter()
+        .filter(|(key, _)| {
+            !floor::desktop_profile_floor(key)
+                && (!key.starts_with("inference") || KEEP_INFERENCE_KEYS.contains(&key.as_str()))
+        })
+        .map(|(key, value)| (KeyPath::new(&[&key]), value))
+        .collect()
+}
+
+/// profile id 只能是文件名安全的字符，防止 `_meta.json` 里的值拼出别的路径。
+fn is_safe_profile_id(id: &str) -> bool {
+    !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
 /// 切回官方：两个配置文件改回 `1p`，清掉旧版写进 `enterpriseConfig` 的网关设置，
@@ -1275,27 +1318,15 @@ impl LivePatch for MetaPatch {
                 }
             }
         } else {
-            let next_id = match obj.get_mut("entries") {
-                Some(entries) => {
-                    let entries = entries.as_array_mut().ok_or_else(not_an_array)?;
-                    entries.retain(|entry| !is_ours(entry));
-                    entries
-                        .iter()
-                        .find_map(|entry| entry.get("id").and_then(Value::as_str))
-                        .map(str::to_string)
-                }
-                None => None,
-            };
-            if obj.get("appliedId").and_then(Value::as_str) == Some(PROFILE_ID) {
-                match next_id {
-                    Some(next_id) => {
-                        obj.insert("appliedId".to_string(), json!(next_id));
-                    }
-                    None => {
-                        obj.shift_remove("appliedId");
-                    }
-                }
+            if let Some(entries) = obj.get_mut("entries") {
+                let entries = entries.as_array_mut().ok_or_else(not_an_array)?;
+                entries.retain(|entry| !is_ours(entry));
             }
+            // 切回官方就是不要任何第三方 profile：`appliedId` 整个删掉。过去这里会把列表里
+            // 下一个 profile（比如官方 CC Switch 留下的）设成生效，Desktop 于是带着那个
+            // profile 的 gateway 又进了第三方模式——用户选了 Direct/官方却还是自定义网关。
+            // 别的 profile 的条目和文件都保留，用户在 Desktop 里还能自己选回去。
+            obj.shift_remove("appliedId");
         }
 
         patch_json::serialize(path, &doc, &style)
@@ -1521,6 +1552,57 @@ mod tests {
         );
         paths.device = DeviceStore::at(home.join(".cc-switch"));
         paths
+    }
+
+    /// 第一次建 MultiClaude 的 profile 时，用户在原来那个 profile 里的设置跟过来，连接键不跟。
+    #[test]
+    fn first_gateway_profile_inherits_the_previous_profiles_settings() {
+        let home = TempDir::new().expect("tempdir");
+        let paths = test_paths(home.path());
+        fs::create_dir_all(&paths.config_library_path).expect("config library");
+        let old_id = "733f2bf1-eb2a-4011-9c4c-9c3bfb809b52";
+        fs::write(
+            paths.config_library_path.join(format!("{old_id}.json")),
+            serde_json::to_string(&json!({
+                "inferenceProvider": "gateway",
+                "inferenceGatewayBaseUrl": "http://127.0.0.1:15721/claude-desktop",
+                "inferenceGatewayApiKey": "old-key",
+                "inferenceCredentialKind": "static",
+                "inferenceModels": [{ "name": "claude-sonnet-5" }],
+                "inferenceModelPricingEnabled": false,
+                "chatTabEnabled": true,
+                "defaultModelEffort": "medium",
+                "coworkEgressAllowedHosts": ["example.com"],
+            }))
+            .unwrap(),
+        )
+        .expect("old profile");
+        fs::write(
+            &paths.meta_path,
+            serde_json::to_string(&json!({
+                "appliedId": old_id,
+                "entries": [{ "id": old_id, "name": "Old" }],
+            }))
+            .unwrap(),
+        )
+        .expect("meta");
+
+        let profile = build_gateway_profile("http://127.0.0.1:1/claude-desktop", "new-key", None);
+        write_gateway_profile_at_paths(&paths, profile).expect("write");
+
+        let written: Value = read_json_file(&paths.profile_path).expect("read profile");
+        assert_eq!(written["chatTabEnabled"], json!(true));
+        assert_eq!(written["defaultModelEffort"], json!("medium"));
+        assert_eq!(written["inferenceModelPricingEnabled"], json!(false));
+        // 用户收紧过的出站白名单不被我们的默认值盖掉。
+        assert_eq!(written["coworkEgressAllowedHosts"], json!(["example.com"]));
+        assert_eq!(written["inferenceGatewayApiKey"], json!("new-key"));
+        assert_eq!(
+            written["inferenceGatewayBaseUrl"],
+            json!("http://127.0.0.1:1/claude-desktop")
+        );
+        assert!(written.get("inferenceCredentialKind").is_none());
+        assert!(written.get("inferenceModels").is_none());
     }
 
     #[cfg(any(target_os = "linux", all(test, unix)))]
@@ -2453,7 +2535,9 @@ mod tests {
             meta["entries"],
             json!([{"id": "other-1", "name": "Mine"}, {"id": "other-2", "name": "Also mine"}])
         );
-        assert_eq!(meta["appliedId"], json!("other-1"));
+        // 切回官方后不能让别的 profile 生效：Desktop 一看到 appliedId 就进第三方模式，
+        // 用户选了官方却被带到 other-1 的 gateway 上。条目留着，Desktop 里还能手动选。
+        assert!(meta.get("appliedId").is_none());
     }
 
     #[cfg(unix)]

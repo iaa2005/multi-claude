@@ -208,21 +208,18 @@ export interface UsageRangeSelection {
 /**
  * App types surfaced as dashboard filter buttons.
  *
- * `claude-desktop` is intentionally NOT listed: the Desktop gateway's proxy
- * traffic is still recorded under its own `app_type` (preserving route-takeover
- * billing audit — the request detail panel shows the real value), but the
- * dashboard folds it into `claude` for display. It is the embedded Claude Code
- * runtime running inside the Desktop shell, and Desktop *chat* usage never
- * passes through this app at all, so a separate "Claude Desktop" bucket would
- * only ever show a partial number and mislead users into reading it as the
- * Desktop's full usage. The backend collapses `claude-desktop → claude` in
- * every dashboard query (see `folded_app_type_sql`).
+ * `claude-desktop` has its own chip in MultiClaude. Upstream CC Switch folded it
+ * into `claude` because Desktop *chat* never passed through the app; here the
+ * whole Desktop (Chat, Cowork, Code) runs on our gateway, so its bucket is the
+ * Desktop's complete usage. The backend no longer folds it (see
+ * `folded_app_type_sql`).
  * `opencode` and `pi` have no proxy handler; their usage reaches this
  * dashboard through session importers. `openclaw` / `hermes` appear only as
  * managed apps elsewhere.
  */
 export type AppType =
   | "claude"
+  | "claude-desktop"
   | "codex"
   | "gemini"
   | "grokbuild"
@@ -234,6 +231,7 @@ export type AppTypeFilter = "all" | AppType;
 
 export const KNOWN_APP_TYPES: ReadonlyArray<AppType> = [
   "claude",
+  "claude-desktop",
   "codex",
   "gemini",
   "grokbuild",
