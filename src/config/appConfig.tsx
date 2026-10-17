@@ -58,13 +58,14 @@ export const SKILLS_APP_IDS: AppId[] = [
 
 export type ProxyAppId = Extract<
   AppId,
-  "claude" | "claude-desktop" | "codex" | "gemini" | "grokbuild"
+  "claude" | "claude-desktop" | "claude-science" | "codex" | "gemini" | "grokbuild"
 >;
 
 /** Apps with a complete local gateway + failover data plane. */
 export const PROXY_APP_IDS: ProxyAppId[] = [
   "claude",
   "claude-desktop",
+  "claude-science",
   "codex",
   "gemini",
   "grokbuild",

@@ -1,13 +1,17 @@
 # Claude Science in CC Switch
 
-Status: **usable in direct and model-mapping modes.** `claude_science.rs`
-owns environment construction and the daemon lifecycle; `AppType::ClaudeScience`
-exists across the Rust and TS registries; provider switching validates,
-restarts the daemon, and commits the pointer only after it starts. The gateway
-serves `/claude-science/v1/{models,messages}` with its own provider namespace
-and usage bucket, inheriting Claude's pricing settings like Desktop does.
-Remaining: the global mode lifecycle (enter/leave proxy for the app) and a
-daemon-status surface in the UI.
+Status: **wired end to end, not yet tested against a running install.**
+`claude_science.rs` owns environment construction and the daemon lifecycle;
+`AppType::ClaudeScience` exists across the Rust and TS registries; provider
+switching validates, restarts the daemon, and commits the pointer only after
+it starts. The gateway serves `/claude-science/v1/{models,messages}` with its
+own provider namespace and usage bucket, inheriting Claude's pricing settings
+like Desktop does. Science is in `PROXY_APPS`, so the existing direct/route
+mode panel drives it: entering proxy writes the gateway environment and
+leaving writes the direct provider back (or restarts on the official account
+when there is none). The app page shows a daemon status bar on a 5s poll.
+Remaining: a real end-to-end run (see the warning below), and optional usage
+import from Science's own database.
 
 ## What Claude Science is
 
@@ -116,10 +120,13 @@ Frontend (`src`):
    its own provider namespace, model list from the same route table the form
    edits, and usage under `claude-science` with Claude's pricing settings.
    Proxy switching refuses to point Science at a proxy that is not running.
-4. **Mode lifecycle** (pending): enter/leave proxy for the app as a global
-   mode (Desktop uses `mode::{controller,stack}`), and a daemon-status surface
-   in the UI ("running on port 8000"). Until then the per-provider
-   "接入方式" select is what chooses direct vs gateway.
+4. **Mode lifecycle** (done): Science joined `PROXY_APPS`. `write_proxy`
+   restarts the daemon with the gateway environment (contract key includes
+   the route so only a real route change restarts it), `write_direct` writes
+   the direct provider back and `restart_official` returns to claude.ai when
+   there is none. The reused direct/route panel is the UI; no Stack.
+   A `get_claude_science_status` command and the status bar show the daemon
+   and offer a refresh.
 5. **Polish**: icon, i18n, docs, usage import from Science's DB if wanted.
 
 ## Test plan

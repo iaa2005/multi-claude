@@ -212,10 +212,21 @@ pub fn status() -> Result<ScienceStatus, AppError> {
     serde_json::from_slice(&out.stdout).map_err(|e| AppError::json(&exe, e))
 }
 
-/// Restart the daemon with this environment. The old one is stopped first:
-/// two daemons on one data dir is exactly what Science's single-instance
-/// lock refuses, and a failed stop must not leave the new one unattached.
+/// Restart the daemon with this environment.
 pub fn apply(gateway: &ScienceGateway) -> Result<(), AppError> {
+    restart(Some(gateway))
+}
+
+/// Restart with no override at all, which is how Science goes back to the
+/// claude.ai account it is signed in to.
+pub fn restart_official() -> Result<(), AppError> {
+    restart(None)
+}
+
+/// The old daemon is stopped first: two of them on one data dir is exactly
+/// what Science's single-instance lock refuses, and a failed stop must not
+/// leave the new one unattached.
+fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
     let exe = exe_path().ok_or_else(missing_exe)?;
 
     // Not running is the normal case on the first switch; the exit status is
@@ -229,15 +240,16 @@ pub fn apply(gateway: &ScienceGateway) -> Result<(), AppError> {
 
     let mut cmd = Command::new(&exe);
     cmd.args(serve_args())
-        .env("ANTHROPIC_BASE_URL", &gateway.base_url)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    if let Some(key) = &gateway.api_key {
-        cmd.env("ANTHROPIC_API_KEY", key);
-    }
-    if let Some(token) = &gateway.auth_token {
-        cmd.env("ANTHROPIC_AUTH_TOKEN", token);
+        .stderr(Stdio::null())
+        // The parent (CC Switch) must not leak its own Anthropic settings
+        // into a process that is supposed to be back on claude.ai.
+        .env_remove("ANTHROPIC_BASE_URL")
+        .env_remove("ANTHROPIC_API_KEY")
+        .env_remove("ANTHROPIC_AUTH_TOKEN");
+    for (key, value) in env_pairs(gateway) {
+        cmd.env(key, value);
     }
     #[cfg(windows)]
     {
@@ -256,6 +268,21 @@ pub fn apply(gateway: &ScienceGateway) -> Result<(), AppError> {
         )));
     }
     Ok(())
+}
+
+/// The environment a restart contributes. Empty means "official account".
+fn env_pairs(gateway: Option<&ScienceGateway>) -> Vec<(&'static str, String)> {
+    let Some(gateway) = gateway else {
+        return Vec::new();
+    };
+    let mut pairs = vec![("ANTHROPIC_BASE_URL", gateway.base_url.clone())];
+    if let Some(key) = &gateway.api_key {
+        pairs.push(("ANTHROPIC_API_KEY", key.clone()));
+    }
+    if let Some(token) = &gateway.auth_token {
+        pairs.push(("ANTHROPIC_AUTH_TOKEN", token.clone()));
+    }
+    pairs
 }
 
 fn missing_exe() -> AppError {
@@ -344,5 +371,27 @@ mod tests {
             ["serve", "--no-browser", "--detached", "--no-auto-update"]
         );
         assert_eq!(stop_args(), ["stop"]);
+    }
+
+    #[test]
+    fn official_restart_contributes_no_environment() {
+        assert!(env_pairs(None).is_empty());
+    }
+
+    #[test]
+    fn gateway_restart_carries_url_and_each_credential_present() {
+        let gateway = ScienceGateway {
+            base_url: "https://example.com/anthropic".into(),
+            api_key: Some("key".into()),
+            auth_token: Some("token".into()),
+        };
+        assert_eq!(
+            env_pairs(Some(&gateway)),
+            vec![
+                ("ANTHROPIC_BASE_URL", "https://example.com/anthropic".into()),
+                ("ANTHROPIC_API_KEY", "key".into()),
+                ("ANTHROPIC_AUTH_TOKEN", "token".into()),
+            ]
+        );
     }
 }

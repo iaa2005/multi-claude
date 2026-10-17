@@ -1437,6 +1437,7 @@ pub fn run() {
             commands::switch_provider,
             commands::import_default_config,
             commands::get_claude_desktop_status,
+            commands::get_claude_science_status,
             commands::get_claude_desktop_default_routes,
             commands::import_claude_desktop_providers_from_claude,
             commands::ensure_claude_desktop_official_provider,

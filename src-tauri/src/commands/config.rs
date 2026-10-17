@@ -439,3 +439,45 @@ pub async fn extract_common_config_snippet(
     crate::services::provider::ProviderService::extract_common_config_snippet(&state, app)
         .map_err(|e| e.to_string())
 }
+
+/// Claude Science's daemon state, for the banner on its provider page.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeScienceStatus {
+    pub installed: bool,
+    pub running: bool,
+    pub port: Option<u16>,
+    pub version: Option<String>,
+    /// Why the status could not be read (an old build, a broken install).
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn get_claude_science_status() -> Result<ClaudeScienceStatus, String> {
+    let installed = crate::claude_science::exe_path().is_some_and(|path| path.exists());
+    if !installed {
+        return Ok(ClaudeScienceStatus {
+            installed: false,
+            running: false,
+            port: None,
+            version: None,
+            error: None,
+        });
+    }
+    match crate::claude_science::status() {
+        Ok(status) => Ok(ClaudeScienceStatus {
+            installed: true,
+            running: status.running,
+            port: status.port,
+            version: status.version,
+            error: None,
+        }),
+        Err(error) => Ok(ClaudeScienceStatus {
+            installed: true,
+            running: false,
+            port: None,
+            version: None,
+            error: Some(error.to_string()),
+        }),
+    }
+}

@@ -44,9 +44,10 @@ use super::stack::{self, StackModel, StackView};
 use super::state::{op, Contract, Mode, ModeState, PendingTarget, StackState};
 
 /// 支持代理模式的应用。
-pub const PROXY_APPS: [AppType; 5] = [
+pub const PROXY_APPS: [AppType; 6] = [
     AppType::Claude,
     AppType::ClaudeDesktop,
+    AppType::ClaudeScience,
     AppType::Codex,
     AppType::Gemini,
     AppType::GrokBuild,
@@ -497,6 +498,29 @@ async fn write_proxy(
             commit_state(state, app, &pending(target))?;
             false
         }
+        AppType::ClaudeScience => {
+            // Science has no file to patch: the contract is the daemon's
+            // environment. The key includes the route so a route change
+            // restarts it, while an unchanged route (a switch that only
+            // re-states it) does not.
+            let token = crate::claude_desktop_config::get_or_create_gateway_token(&state.db)
+                .map_err(err)?;
+            let gateway =
+                crate::claude_science::ScienceGateway::via_gateway(&proxy_url, &token)
+                    .map_err(err)?;
+            let key = format!("claude-science:proxy:{}", route.id);
+            let unchanged = !force && live_now.has_contract(&key);
+            target.contract = Some(Contract {
+                version: 1,
+                key,
+                exclusive: Default::default(),
+            });
+            if !unchanged {
+                crate::claude_science::apply(&gateway).map_err(err)?;
+            }
+            commit_state(state, app, &pending(target))?;
+            unchanged
+        }
         _ => return Err(format!("{} 不支持本地路由", app.as_str())),
     };
     Ok(!unchanged)
@@ -595,6 +619,19 @@ fn write_direct(
                         .map_err(err)?;
                 }
                 None => crate::claude_desktop_config::restore_official().map_err(err)?,
+            }
+            commit_state(state, app, &pending_target)?;
+        }
+        AppType::ClaudeScience => {
+            // Same shape, one level lower: the "file" is the daemon process.
+            match usable_direct(app, direct.as_ref()) {
+                Some(provider) => {
+                    let gateway =
+                        crate::claude_science::gateway_from_provider(&provider.settings_config)
+                            .map_err(err)?;
+                    crate::claude_science::apply(&gateway).map_err(err)?;
+                }
+                None => crate::claude_science::restart_official().map_err(err)?,
             }
             commit_state(state, app, &pending_target)?;
         }

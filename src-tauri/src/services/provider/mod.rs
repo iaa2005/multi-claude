@@ -6577,13 +6577,6 @@ impl ProviderService {
             return Self::switch_normal(state, app_type, id, &providers);
         }
 
-        // Claude Science has no config file to write: the switch is a daemon
-        // restart with a new environment. It is handled before the generic
-        // live-write path, which would otherwise refuse it.
-        if matches!(app_type, AppType::ClaudeScience) {
-            return Self::switch_claude_science(state, _provider);
-        }
-
         // 切换和进入 / 退出代理都会改客户端文件和指针。按应用串行，拿到锁、补完上一次
         // 没做完的写入之后再读模式和指针：刚进入代理的应用不会被一次直连写入覆盖，上次
         // 失败后重试也按补完后的指针删上一家的独有字段。
@@ -6622,46 +6615,6 @@ impl ProviderService {
         Self::switch_normal(state, app_type, id, &providers)
     }
 
-    /// Claude Science keeps its endpoint in the daemon's environment, so the
-    /// switch is a restart rather than a file rewrite. Validate first, let the
-    /// daemon accept the new environment, and commit the pointer only then:
-    /// a failed restart must not leave the database claiming a provider the
-    /// running daemon is not using.
-    fn switch_claude_science(
-        state: &AppState,
-        provider: &Provider,
-    ) -> Result<SwitchResult, AppError> {
-        // Direct providers get their own endpoint; model mapping goes through
-        // the local gateway, which serves /claude-science and publishes the
-        // claude-* routes this form edits.
-        let gateway = match crate::claude_desktop_config::provider_mode(provider) {
-            crate::provider::ClaudeDesktopMode::Proxy => {
-                if !futures::executor::block_on(state.proxy_service.is_running()) {
-                    return Err(AppError::localized(
-                        "claude_science.proxy_not_running",
-                        "Сначала включите локальный прокси CC Switch: Science пойдёт через него.",
-                        "Turn on the CC Switch local proxy first: Science routes through it.",
-                    ));
-                }
-                let base = crate::claude_desktop_config::proxy_gateway_base_url_from_db(
-                    state.db.as_ref(),
-                )?;
-                let token =
-                    crate::claude_desktop_config::get_or_create_gateway_token(state.db.as_ref())?;
-                crate::claude_science::ScienceGateway::via_gateway(&base, &token)?
-            }
-            crate::provider::ClaudeDesktopMode::Direct => {
-                crate::claude_science::gateway_from_provider(&provider.settings_config)?
-            }
-        };
-        crate::claude_science::apply(&gateway)?;
-        crate::settings::set_current_provider(&AppType::ClaudeScience, Some(&provider.id))?;
-        state
-            .db
-            .set_current_provider(AppType::ClaudeScience.as_str(), &provider.id)?;
-        Ok(SwitchResult::default())
-    }
-
     /// Normal switch flow (non-proxy mode)
     fn switch_normal(
         state: &AppState,
@@ -6698,6 +6651,18 @@ impl ProviderService {
         }
         if matches!(app_type, AppType::Gemini) {
             gemini_direct::switch_to(state.db.as_ref(), provider)?;
+            return Ok(SwitchResult::default());
+        }
+        // Science direct mode: the daemon is the "live file". Apply first, so
+        // a failed restart leaves the pointer where it was.
+        if matches!(app_type, AppType::ClaudeScience) {
+            let gateway =
+                crate::claude_science::gateway_from_provider(&provider.settings_config)?;
+            crate::claude_science::apply(&gateway)?;
+            crate::settings::set_current_provider(&app_type, Some(&provider.id))?;
+            state
+                .db
+                .set_current_provider(app_type.as_str(), &provider.id)?;
             return Ok(SwitchResult::default());
         }
         if matches!(app_type, AppType::GrokBuild) {
