@@ -6631,7 +6631,29 @@ impl ProviderService {
         state: &AppState,
         provider: &Provider,
     ) -> Result<SwitchResult, AppError> {
-        let gateway = crate::claude_science::gateway_from_provider(&provider.settings_config)?;
+        // Direct providers get their own endpoint; model mapping goes through
+        // the local gateway, which serves /claude-science and publishes the
+        // claude-* routes this form edits.
+        let gateway = match crate::claude_desktop_config::provider_mode(provider) {
+            crate::provider::ClaudeDesktopMode::Proxy => {
+                if !futures::executor::block_on(state.proxy_service.is_running()) {
+                    return Err(AppError::localized(
+                        "claude_science.proxy_not_running",
+                        "Сначала включите локальный прокси CC Switch: Science пойдёт через него.",
+                        "Turn on the CC Switch local proxy first: Science routes through it.",
+                    ));
+                }
+                let base = crate::claude_desktop_config::proxy_gateway_base_url_from_db(
+                    state.db.as_ref(),
+                )?;
+                let token =
+                    crate::claude_desktop_config::get_or_create_gateway_token(state.db.as_ref())?;
+                crate::claude_science::ScienceGateway::via_gateway(&base, &token)?
+            }
+            crate::provider::ClaudeDesktopMode::Direct => {
+                crate::claude_science::gateway_from_provider(&provider.settings_config)?
+            }
+        };
         crate::claude_science::apply(&gateway)?;
         crate::settings::set_current_provider(&AppType::ClaudeScience, Some(&provider.id))?;
         state

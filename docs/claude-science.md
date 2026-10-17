@@ -1,11 +1,13 @@
 # Claude Science in CC Switch
 
-Status: **app type and direct switching wired; gateway route and usage still
-pending.** `claude_science.rs` owns environment construction and the daemon
-lifecycle; `AppType::ClaudeScience` exists across the Rust and TS registries,
-provider switching validates and restarts the daemon, and the provider UI
-reuses the Claude Desktop form. The proxy route `/claude-science` is not
-served yet — the next slice.
+Status: **usable in direct and model-mapping modes.** `claude_science.rs`
+owns environment construction and the daemon lifecycle; `AppType::ClaudeScience`
+exists across the Rust and TS registries; provider switching validates,
+restarts the daemon, and commits the pointer only after it starts. The gateway
+serves `/claude-science/v1/{models,messages}` with its own provider namespace
+and usage bucket, inheriting Claude's pricing settings like Desktop does.
+Remaining: the global mode lifecycle (enter/leave proxy for the app) and a
+daemon-status surface in the UI.
 
 ## What Claude Science is
 
@@ -110,11 +112,14 @@ Frontend (`src`):
    the registries, the reused provider form, and apply = stop/serve with the
    provider's env. Save commits the current-provider pointer only after the
    daemon accepts the environment.
-3. **Gateway route**: `/claude-science` in the proxy, model aliases, usage
-   bucket; apply = gateway URL + token.
-4. **Mode lifecycle**: route/stack, restart-on-change, status surface in the
-   UI ("daemon running on port 8000"). The reused Desktop form still shows its
-   mode controls; they are inert for Science until this slice.
+3. **Gateway route** (done): `/claude-science/v1/models` and `/v1/messages`,
+   its own provider namespace, model list from the same route table the form
+   edits, and usage under `claude-science` with Claude's pricing settings.
+   Proxy switching refuses to point Science at a proxy that is not running.
+4. **Mode lifecycle** (pending): enter/leave proxy for the app as a global
+   mode (Desktop uses `mode::{controller,stack}`), and a daemon-status surface
+   in the UI ("running on port 8000"). Until then the per-provider
+   "接入方式" select is what chooses direct vs gateway.
 5. **Polish**: icon, i18n, docs, usage import from Science's DB if wanted.
 
 ## Test plan

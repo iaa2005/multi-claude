@@ -457,6 +457,7 @@ impl AppType {
             self,
             AppType::Claude
                 | AppType::ClaudeDesktop
+                | AppType::ClaudeScience
                 | AppType::Codex
                 | AppType::Gemini
                 | AppType::GrokBuild
@@ -1067,9 +1068,10 @@ mod tests {
         }
         assert_eq!(AppType::ClaudeScience.as_str(), "claude-science");
         // Switch mode, not additive: Science has one active provider, like
-        // Claude Desktop, and no proxy route yet.
+        // Claude Desktop. It now has its own gateway route, so the mode
+        // machinery may consider it proxy-capable.
         assert!(!AppType::ClaudeScience.is_additive_mode());
-        assert!(!AppType::ClaudeScience.supports_local_proxy());
+        assert!(AppType::ClaudeScience.supports_local_proxy());
     }
 
     struct TempHome {

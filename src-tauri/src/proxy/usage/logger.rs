@@ -349,7 +349,7 @@ impl<'a> UsageLogger<'a> {
     pub async fn resolve_pricing_model_source(&self, app_type: &str) -> String {
         // Claude Desktop 网关没有独立的全局计费配置（proxy_config 的 CHECK 不含
         // claude-desktop），继承 claude 的设置。
-        let default_app_type = if app_type == "claude-desktop" {
+        let default_app_type = if matches!(app_type, "claude-desktop" | "claude-science") {
             "claude"
         } else {
             app_type

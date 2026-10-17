@@ -291,6 +291,46 @@ pub async fn handle_claude_desktop_models(
     Ok(Json(response))
 }
 
+// ============================================================================
+// Claude Science gateway
+// ============================================================================
+
+/// Science reads its endpoint from the daemon environment, so it reaches the
+/// same Anthropic face as Desktop. The provider namespace and the usage
+/// bucket are its own; the model list comes from the same route table the
+/// Desktop form edits.
+pub async fn handle_claude_science_messages(
+    State(state): State<ProxyState>,
+    request: axum::extract::Request,
+) -> Result<axum::response::Response, ProxyError> {
+    validate_claude_desktop_gateway_auth(&state, request.headers())?;
+    handle_messages_for_app(
+        state,
+        request,
+        AppType::ClaudeScience,
+        "Claude Science",
+        "claude-science",
+        Some("/claude-science"),
+    )
+    .await
+}
+
+pub async fn handle_claude_science_models(
+    State(state): State<ProxyState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Json<Value>, ProxyError> {
+    validate_claude_desktop_gateway_auth(&state, &headers)?;
+    let providers = state
+        .provider_router
+        .select_providers("claude-science")
+        .await
+        .map_err(|e| ProxyError::DatabaseError(e.to_string()))?;
+    let provider = providers.first().ok_or(ProxyError::NoAvailableProvider)?;
+    let response = crate::claude_desktop_config::model_list_response(provider)
+        .map_err(|e| ProxyError::ConfigError(e.to_string()))?;
+    Ok(Json(response))
+}
+
 async fn handle_messages_for_app(
     state: ProxyState,
     request: axum::extract::Request,

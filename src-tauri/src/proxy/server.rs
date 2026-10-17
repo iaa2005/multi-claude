@@ -313,6 +313,15 @@ impl ProxyServer {
                 "/claude-desktop/v1/messages",
                 post(handlers::handle_claude_desktop_messages),
             )
+            // Claude Science 3P gateway (own provider namespace and usage bucket)
+            .route(
+                "/claude-science/v1/models",
+                get(handlers::handle_claude_science_models),
+            )
+            .route(
+                "/claude-science/v1/messages",
+                post(handlers::handle_claude_science_messages),
+            )
             // OpenAI Chat Completions API (Codex CLI，支持带前缀和不带前缀)
             .route("/chat/completions", post(handlers::handle_chat_completions))
             .route(
