@@ -66,7 +66,13 @@ pub const CLAUDE_DEFAULT_WINDOW: u64 = 200_000;
 
 /// 支持 Stack 模型的应用。
 pub fn supports_stack(app: &AppType) -> bool {
-    matches!(app, AppType::Claude | AppType::Codex | AppType::ClaudeDesktop)
+    matches!(app, AppType::Claude | AppType::Codex | AppType::ClaudeDesktop | AppType::ClaudeScience)
+}
+
+/// Claude Desktop 和 Claude Science 共用 Desktop 的模型 id 格式和发布方式：两边都从同一张
+/// 路由表读模型，经 `/claude-desktop`、`/claude-science` 网关拿 `/v1/models`。
+pub fn uses_desktop_ids(app: &AppType) -> bool {
+    matches!(app, AppType::ClaudeDesktop | AppType::ClaudeScience)
 }
 
 /// 给 `provider` 一个 key：登记过就用原来的（移除后重新加入，旧会话里的 id 继续有效），
@@ -128,7 +134,7 @@ fn slug(text: &str) -> String {
 pub fn encode(app: &AppType, key: &str, model: &str, one_m: bool) -> String {
     match app {
         AppType::Codex => format!("{CODEX_PREFIX}{key}{CODEX_SEPARATOR}{model}"),
-        AppType::ClaudeDesktop => encode_desktop(key, DESKTOP_DEFAULT_ROLE, model),
+        AppType::ClaudeDesktop | AppType::ClaudeScience => encode_desktop(key, DESKTOP_DEFAULT_ROLE, model),
         _ => {
             let marker = if one_m { ONE_M_MARKER_FOR_CLIENT } else { "" };
             format!("{CLAUDE_PREFIX}{key}{CLAUDE_SEPARATOR}{model}{marker}")
@@ -231,7 +237,7 @@ pub enum Decoded<'a> {
 /// 按客户端的格式解码模型 id。Claude：`ccs-claude-` 开头；Codex：`ccs-` 开头且含 `/`。
 pub fn decode<'a>(app: &AppType, id: &'a str) -> Decoded<'a> {
     let (rest, separator, one_m) = match app {
-        AppType::ClaudeDesktop => return decode_desktop(id),
+        AppType::ClaudeDesktop | AppType::ClaudeScience => return decode_desktop(id),
         AppType::Claude => {
             let Some(rest) = id.strip_prefix(CLAUDE_PREFIX) else {
                 return Decoded::Plain;
@@ -546,7 +552,7 @@ fn model_ids_of(app: &AppType, key: &str, provider: &Provider, route: bool) -> V
             .into_iter()
             .map(|model| model.id)
             .collect(),
-        AppType::ClaudeDesktop => desktop_models(key, provider)
+        AppType::ClaudeDesktop | AppType::ClaudeScience => desktop_models(key, provider)
             .into_iter()
             .map(|model| model.id)
             .collect(),
@@ -641,7 +647,7 @@ fn published_by_member(app: &AppType, members: &[Member]) -> Vec<Vec<StackModel>
     members
         .iter()
         .map(|member| match app {
-            AppType::ClaudeDesktop => desktop_models(&member.key, &member.provider)
+            AppType::ClaudeDesktop | AppType::ClaudeScience => desktop_models(&member.key, &member.provider)
                 .into_iter()
                 .filter(|model| seen.insert(model.upstream.to_ascii_lowercase()))
                 .collect(),
@@ -772,7 +778,7 @@ pub fn resolve(
     }
     let stack = state::stack(store, app.as_str())?;
     // Desktop 的 id 里 key 是哈希段，对着登记过的 key 还原。
-    let desktop_key = matches!(app, AppType::ClaudeDesktop)
+    let desktop_key = uses_desktop_ids(app)
         .then(|| {
             stack
                 .keys
@@ -804,7 +810,7 @@ pub fn resolve(
         // Desktop 的 id 里模型名也是哈希：按哈希在这家发布的模型里找，不看角色段——角色
         // 只是 Desktop 的展示档位，换过档位的旧会话 id 还得能用。找不到（行里已经删了这个
         // 模型）就报错：哈希没法当模型名发给上游。
-        AppType::ClaudeDesktop => {
+        AppType::ClaudeDesktop | AppType::ClaudeScience => {
             let Some(published) = desktop_models(key, &provider)
                 .into_iter()
                 .find(|published| desktop_model_digits(&published.upstream) == model_part)
@@ -899,10 +905,10 @@ pub fn member_views(app: &AppType, members: &[Member]) -> Vec<StackMemberView> {
         .map(|member| {
             let own = published.next().unwrap_or_default();
             let models = match app {
-                AppType::Claude | AppType::ClaudeDesktop => own
+                AppType::Claude | AppType::ClaudeDesktop | AppType::ClaudeScience => own
                     .into_iter()
                     .map(|model| {
-                        let tier = matches!(app, AppType::ClaudeDesktop).then(|| desktop_role(&model.id));
+                        let tier = uses_desktop_ids(app).then(|| desktop_role(&model.id));
                         StackModelView {
                             id: model.id,
                             display_name: model.display_name,
@@ -915,7 +921,7 @@ pub fn member_views(app: &AppType, members: &[Member]) -> Vec<StackMemberView> {
                 _ => Vec::new(),
             };
             // Desktop 跨成员去重过，名单上的 id 要和真正发布的一致。
-            let model_ids = if matches!(app, AppType::ClaudeDesktop) {
+            let model_ids = if uses_desktop_ids(app) {
                 models.iter().map(|model| model.id.clone()).collect()
             } else {
                 member.model_ids.clone()
@@ -1123,6 +1129,36 @@ mod tests {
             );
         }
         provider
+    }
+
+    #[test]
+    fn science_route_lists_each_upstream_model_once_under_the_provider() {
+        let deepseek = desktop_provider(
+            "ds",
+            "DeepSeek",
+            &[
+                ("claude-fable-5", "deepseek-v4-pro"),
+                ("claude-opus-5", "deepseek-v4-pro"),
+                ("claude-sonnet-5", "deepseek-v4-pro"),
+                ("claude-haiku-4-5", "deepseek-flash"),
+            ],
+        );
+        let models = crate::claude_desktop_config::science_route_models(&deepseek).unwrap();
+        let upstream: Vec<&str> = models.iter().map(|m| m.upstream.as_str()).collect();
+        assert_eq!(upstream.len(), 2, "{upstream:?}");
+        assert!(upstream.contains(&"deepseek-v4-pro") && upstream.contains(&"deepseek-flash"));
+        for model in &models {
+            assert!(model.id.starts_with("claude-"), "{}", model.id);
+            assert_eq!(model.description, "DeepSeek");
+        }
+    }
+
+    #[test]
+    fn science_shares_desktop_ids() {
+        assert!(supports_stack(&AppType::ClaudeScience));
+        let id = encode(&AppType::ClaudeScience, "deepseek", "deepseek-v4-pro", false);
+        assert_eq!(id, encode(&AppType::ClaudeDesktop, "deepseek", "deepseek-v4-pro", false));
+        assert!(!matches!(decode(&AppType::ClaudeScience, &id), Decoded::Plain));
     }
 
     fn desktop_member(key: &str, provider: Provider) -> Member {

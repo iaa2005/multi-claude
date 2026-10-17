@@ -120,6 +120,7 @@ impl ProxyServer {
         let listener = tokio::net::TcpListener::bind(&addr)
             .await
             .map_err(|e| ProxyError::BindFailed(e.to_string()))?;
+        keep_listener_out_of_children(&listener);
         let local_addr = listener
             .local_addr()
             .map_err(|e| ProxyError::BindFailed(e.to_string()))?;
@@ -1305,3 +1306,24 @@ mod tests {
         );
     }
 }
+
+/// Processes this app starts must not inherit the gateway socket. The Claude
+/// Science daemon is spawned while the proxy listens and outlives the app;
+/// with an inherited handle it kept 15723 bound after MultiClaude quit, so the
+/// next start could not bind and fell back to direct mode.
+#[cfg(windows)]
+fn keep_listener_out_of_children(listener: &tokio::net::TcpListener) {
+    use std::os::windows::io::AsRawSocket;
+    use windows_sys::Win32::Foundation::{SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT};
+    let handle = listener.as_raw_socket() as HANDLE;
+    // SAFETY: the socket is open for as long as `listener` is borrowed.
+    if unsafe { SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0) } == 0 {
+        log::warn!(
+            "[proxy] could not mark the listener non-inheritable: {}",
+            std::io::Error::last_os_error()
+        );
+    }
+}
+
+#[cfg(not(windows))]
+fn keep_listener_out_of_children(_listener: &tokio::net::TcpListener) {}

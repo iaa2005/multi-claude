@@ -320,15 +320,25 @@ pub async fn handle_claude_science_models(
     headers: axum::http::HeaderMap,
 ) -> Result<Json<Value>, ProxyError> {
     validate_claude_science_gateway_auth(&state, &headers).await?;
-    let providers = state
-        .provider_router
-        .select_providers("claude-science")
-        .await
-        .map_err(|e| ProxyError::DatabaseError(e.to_string()))?;
-    let provider = providers.first().ok_or(ProxyError::NoAvailableProvider)?;
-    let response = crate::claude_desktop_config::model_list_response(provider)
-        .map_err(|e| ProxyError::ConfigError(e.to_string()))?;
-    Ok(Json(response))
+    // Aggregation and routing publish the same shape: one entry per upstream
+    // model, named after it, with the provider as the description. Science
+    // shows both in its picker, unlike Desktop's tier slots.
+    let models = if crate::mode::stack::stack_mode_now(&AppType::ClaudeScience) {
+        crate::mode::stack::published_now(&state.db, AppType::ClaudeScience)
+            .map_err(|e| ProxyError::DatabaseError(e.to_string()))?
+    } else {
+        let providers = state
+            .provider_router
+            .select_providers("claude-science")
+            .await
+            .map_err(|e| ProxyError::DatabaseError(e.to_string()))?;
+        let provider = providers.first().ok_or(ProxyError::NoAvailableProvider)?;
+        crate::claude_desktop_config::science_route_models(provider)
+            .map_err(|e| ProxyError::ConfigError(e.to_string()))?
+    };
+    Ok(Json(crate::claude_desktop_config::stack_model_list_response(
+        &models,
+    )))
 }
 
 async fn handle_messages_for_app(

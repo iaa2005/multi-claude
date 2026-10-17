@@ -724,6 +724,35 @@ pub fn model_list_response(provider: &Provider) -> Result<Value, AppError> {
     }))
 }
 
+/// Claude Science 路由模式的模型：路由表里每个上游模型只发布一次（第一个指向它的路由 id），
+/// 名字是模型自己的显示名，说明是供应商名——和聚合模式一个样子。Desktop 的档位概念在
+/// Science 的选择器里只会变成三条同名的「DeepSeek V4 Pro」。
+pub fn science_route_models(
+    provider: &Provider,
+) -> Result<Vec<crate::mode::stack::StackModel>, AppError> {
+    let mut seen = std::collections::HashSet::new();
+    Ok(proxy_model_routes(provider)?
+        .into_iter()
+        .filter(|route| seen.insert(route.upstream_model.trim().to_ascii_lowercase()))
+        .map(|route| {
+            let name = route
+                .label_override
+                .clone()
+                .filter(|label| !label.trim().is_empty())
+                .unwrap_or_else(|| route.upstream_model.clone());
+            crate::mode::stack::StackModel {
+                id: route.route_id,
+                upstream: route.upstream_model,
+                display_name: name.clone(),
+                name,
+                description: provider.name.clone(),
+                one_m: route.supports_1m,
+                window: 0,
+            }
+        })
+        .collect())
+}
+
 /// 聚合（Stack）模式下 `/v1/models` 的响应：所有成员的模型一起发布，Claude Desktop 侧只看
 /// 到一个 provider。`display_name` 带着供应商名，选择器里才分得清是哪一家的。
 pub fn stack_model_list_response(models: &[crate::mode::stack::StackModel]) -> Value {

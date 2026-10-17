@@ -341,6 +341,13 @@ function modeTag(
   status: AppNavStatus,
   t: (key: string) => string,
 ): { label: string; className: string } | null {
+  // 聚合优先：Desktop 聚合时当前卡片也是模型映射卡，标签得说它在聚合，用聚合的紫色。
+  if (status.mode === "stack") {
+    return {
+      label: t("nav.mode.stack"),
+      className: "bg-stack-soft text-stack-text",
+    };
+  }
   if (status.mapping) {
     return {
       label: t("nav.mode.mapping"),
@@ -351,12 +358,6 @@ function modeTag(
     return {
       label: t("nav.mode.route"),
       className: "bg-route-soft text-route-text",
-    };
-  }
-  if (status.mode === "stack") {
-    return {
-      label: t("nav.mode.stack"),
-      className: "bg-stack-soft text-stack-text",
     };
   }
   return null;
@@ -378,13 +379,14 @@ function AppNavItem({
   const { t } = useTranslation();
   const name = APP_DISPLAY_NAME[app];
   const tag = modeTag(status, t);
-  const modeName = status.mapping
-    ? t("nav.mode.mappingFull")
-    : status.mode === "route"
-      ? t("nav.mode.route")
-      : status.mode === "stack"
-        ? t("nav.mode.stack")
-        : null;
+  const modeName =
+    status.mode === "stack"
+      ? t("nav.mode.stack")
+      : status.mapping
+        ? t("nav.mode.mappingFull")
+        : status.mode === "route"
+          ? t("nav.mode.route")
+          : null;
   const tip = status.alert
     ? `${name} · ${t("nav.needsAttention")}`
     : modeName
@@ -438,7 +440,7 @@ function AppNavItem({
       onClick={onSelect}
       aria-current={selected ? "page" : undefined}
       className={cn(
-        "mx-2 flex h-7 w-[184px] shrink-0 items-center gap-2 rounded-control px-2 text-start transition-colors hover:bg-subtle",
+        "mx-2 flex h-7 w-[216px] shrink-0 items-center gap-2 rounded-control px-2 text-start transition-colors hover:bg-subtle",
         selected && "bg-selected font-medium hover:bg-selected",
       )}
     >
@@ -580,7 +582,7 @@ function NavItem({
         aria-current={selected ? "page" : undefined}
         className={cn(
           "flex h-7 shrink-0 items-center gap-2 rounded-control px-2 text-start transition-colors hover:bg-subtle",
-          compact ? "min-w-0 flex-1" : "mx-2 w-[184px]",
+          compact ? "min-w-0 flex-1" : "mx-2 w-[216px]",
           selected && "bg-selected font-medium hover:bg-selected",
         )}
       >
@@ -649,7 +651,7 @@ function SettingsDirectory({
         <button
           type="button"
           onClick={onExitSettings}
-          className="mx-2 flex h-7 w-[184px] shrink-0 items-center gap-2 rounded-control px-2 text-start text-fg-2 transition-colors hover:bg-subtle hover:text-fg-1"
+          className="mx-2 flex h-7 w-[216px] shrink-0 items-center gap-2 rounded-control px-2 text-start text-fg-2 transition-colors hover:bg-subtle hover:text-fg-1"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
           {t("nav.back")}

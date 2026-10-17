@@ -77,12 +77,16 @@ export function isProxyAppId(appId: string): appId is ProxyAppId {
 
 /** 支持 Stack 模式的应用（后端 `mode::stack::supports_stack` 的镜像）。
  * claude-desktop 是聚合的主要受益者：一次看到所有成员的模型，增删成员不用重启。 */
-export type StackAppId = Extract<AppId, "claude" | "codex" | "claude-desktop">;
+export type StackAppId = Extract<
+  AppId,
+  "claude" | "codex" | "claude-desktop" | "claude-science"
+>;
 
 export const STACK_APP_IDS: StackAppId[] = [
   "claude",
   "codex",
   "claude-desktop",
+  "claude-science",
 ];
 
 export function isStackAppId(appId: string): appId is StackAppId {

@@ -513,7 +513,13 @@ async fn write_proxy(
             let gateway =
                 crate::claude_science::ScienceGateway::via_gateway(&proxy_url, &token)
                     .map_err(err)?;
-            let key = format!("claude-science:proxy:{}", route.id);
+            // Science reads /v1/models when the daemon starts, so entering or
+            // leaving aggregation restarts it like a route change does.
+            let key = if stack.enabled {
+                format!("claude-science:stack:{}", route.id)
+            } else {
+                format!("claude-science:proxy:{}", route.id)
+            };
             let unchanged = !force && live_now.has_contract(&key);
             target.contract = Some(Contract {
                 version: 1,
