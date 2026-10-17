@@ -34,6 +34,8 @@ use crate::error::AppError;
 pub const APP_ID: &str = "claude-science";
 /// Override for tests and non-default installs.
 pub const EXE_ENV: &str = "CLAUDE_SCIENCE_EXE";
+/// Isolated data dir for a test instance (`claude-science --data-dir`).
+pub const DATA_DIR_ENV: &str = "CLAUDE_SCIENCE_DATA_DIR";
 /// The proxy route this client talks to. Mirrors `/claude-desktop`.
 pub const PROXY_PREFIX: &str = "/claude-science";
 /// Science accepts code from the browser; the daemon and the UI live here.
@@ -164,6 +166,26 @@ pub fn data_dir() -> PathBuf {
     crate::config::get_home_dir().join(".claude-science")
 }
 
+/// A scratch data dir for a test instance, set by the launcher.
+fn configured_data_dir() -> Option<PathBuf> {
+    std::env::var_os(DATA_DIR_ENV)
+        .map(PathBuf::from)
+        .filter(|path| !path.as_os_str().is_empty())
+}
+
+/// `--data-dir` is a global flag on every Science command; passing it to
+/// `stop` and `status` matters as much as to `serve`, otherwise they address
+/// the real install instead of the test one.
+fn data_dir_args(dir: Option<&Path>) -> Vec<String> {
+    dir.map(|path| {
+        vec![
+            "--data-dir".to_string(),
+            path.display().to_string(),
+        ]
+    })
+    .unwrap_or_default()
+}
+
 fn resolve_exe(override_path: Option<&str>, local_appdata: Option<&str>) -> Option<PathBuf> {
     if let Some(path) = override_path.map(str::trim).filter(|s| !s.is_empty()) {
         return Some(PathBuf::from(path));
@@ -206,6 +228,7 @@ pub fn status() -> Result<ScienceStatus, AppError> {
     let exe = exe_path().ok_or_else(missing_exe)?;
     let out = Command::new(&exe)
         .arg("status")
+        .args(data_dir_args(configured_data_dir().as_deref()))
         .stdin(Stdio::null())
         .output()
         .map_err(|e| AppError::io(&exe, e))?;
@@ -228,18 +251,39 @@ pub fn restart_official() -> Result<(), AppError> {
 /// leave the new one unattached.
 fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
     let exe = exe_path().ok_or_else(missing_exe)?;
+    let data_dir = configured_data_dir();
+    match gateway {
+        Some(gateway) => log::info!(
+            "[claude-science] restart: base={} api_key={} auth_token={} data_dir={}",
+            gateway.base_url,
+            gateway.api_key.is_some(),
+            gateway.auth_token.is_some(),
+            data_dir.as_ref().map_or("<default>".to_string(), |p| p.display().to_string())
+        ),
+        None => log::info!(
+            "[claude-science] restart: official account, data_dir={}",
+            data_dir.as_ref().map_or("<default>".to_string(), |p| p.display().to_string())
+        ),
+    }
 
     // Not running is the normal case on the first switch; the exit status is
     // not worth surfacing.
-    let _ = Command::new(&exe)
+    if let Ok(status) = Command::new(&exe)
         .args(stop_args())
+        .args(data_dir_args(data_dir.as_deref()))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status();
+        .status()
+    {
+        if !status.success() {
+            log::warn!("[claude-science] stop exited with {status} (may not have been running)");
+        }
+    }
 
     let mut cmd = Command::new(&exe);
     cmd.args(serve_args())
+        .args(data_dir_args(data_dir.as_deref()))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -261,12 +305,18 @@ fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
     let out = cmd.output().map_err(|e| AppError::io(&exe, e))?;
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr);
+        log::error!(
+            "[claude-science] serve failed ({}): {}",
+            out.status,
+            stderr.trim()
+        );
         return Err(AppError::Message(format!(
             "claude-science serve failed ({}): {}",
             out.status,
             stderr.trim()
         )));
     }
+    log::info!("[claude-science] daemon started");
     Ok(())
 }
 
@@ -371,6 +421,15 @@ mod tests {
             ["serve", "--no-browser", "--detached", "--no-auto-update"]
         );
         assert_eq!(stop_args(), ["stop"]);
+    }
+
+    #[test]
+    fn data_dir_flag_reaches_every_command() {
+        assert!(data_dir_args(None).is_empty());
+        assert_eq!(
+            data_dir_args(Some(Path::new("C:/tmp/science-test"))),
+            vec!["--data-dir", "C:/tmp/science-test"]
+        );
     }
 
     #[test]

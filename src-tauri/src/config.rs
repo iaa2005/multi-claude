@@ -315,6 +315,17 @@ pub const APP_CONFIG_DIR_NAME: &str = ".multiclaude";
 
 /// 获取应用配置目录路径 (~/.multiclaude)
 pub fn get_app_config_dir() -> PathBuf {
+    // Test builds run beside the installed app: a second process must not
+    // share the database, live-state or logs with the one in use. An absolute
+    // override is the only thing that can be set before launch — the store
+    // override below lives in a file inside this very directory.
+    if let Some(dir) = std::env::var_os("MULTICLAUDE_CONFIG_DIR") {
+        let path = PathBuf::from(dir);
+        if !path.as_os_str().is_empty() {
+            return path;
+        }
+    }
+
     if let Some(custom) = crate::app_store::get_app_config_dir_override() {
         return custom;
     }
