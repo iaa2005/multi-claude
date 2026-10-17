@@ -687,9 +687,16 @@ pub fn model_list_response(provider: &Provider) -> Result<Value, AppError> {
         .iter()
         .map(|route| {
             let model_id = route.route_id.clone();
+            // Science lists models by display_name; without it the picker
+            // shows bare route ids like claude-opus-5.
+            let display_name = route
+                .label_override
+                .clone()
+                .unwrap_or_else(|| route.upstream_model.clone());
             let mut item = json!({
                 "type": "model",
                 "id": model_id,
+                "display_name": display_name,
                 "created_at": DEFAULT_CREATED_AT,
             });
             if route.supports_1m {
