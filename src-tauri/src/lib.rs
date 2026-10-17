@@ -17,6 +17,7 @@ mod gemini_config;
 mod gemini_mcp;
 mod grok_config;
 pub mod hermes_config;
+pub mod claude_science;
 mod init_status;
 mod jsonc_document;
 mod lightweight;
