@@ -527,7 +527,8 @@ async fn write_proxy(
                 exclusive: Default::default(),
             });
             if !unchanged {
-                crate::claude_science::apply(&gateway).map_err(err)?;
+                let profile = if stack.enabled { "stack" } else { "route" };
+                crate::claude_science::apply_with_profile(&gateway, profile).map_err(err)?;
             }
             commit_state(state, app, &pending(target))?;
             unchanged

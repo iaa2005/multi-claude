@@ -277,19 +277,25 @@ const DIRECT_THIRD_PARTY: &str = "Claude Science signs requests with your claude
 
 /// Restart the daemon with this environment.
 pub fn apply(gateway: &ScienceGateway) -> Result<(), AppError> {
-    restart(Some(gateway))
+    apply_with_profile(gateway, "gateway")
+}
+
+/// Restart on the gateway, swapping in the model settings last used in
+/// `profile` ("route", "stack"): each mode publishes different model ids.
+pub fn apply_with_profile(gateway: &ScienceGateway, profile: &str) -> Result<(), AppError> {
+    restart(Some(gateway), profile)
 }
 
 /// Restart with no override at all, which is how Science goes back to the
 /// claude.ai account it is signed in to.
 pub fn restart_official() -> Result<(), AppError> {
-    restart(None)
+    restart(None, OFFICIAL_PROFILE)
 }
 
 /// The old daemon is stopped first: two of them on one data dir is exactly
 /// what Science's single-instance lock refuses, and a failed stop must not
 /// leave the new one unattached.
-fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
+fn restart(gateway: Option<&ScienceGateway>, profile: &str) -> Result<(), AppError> {
     let exe = exe_path().ok_or_else(missing_exe)?;
     let data_dir = configured_data_dir();
     match gateway {
@@ -319,6 +325,13 @@ fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
         if !status.success() {
             log::warn!("[claude-science] stop exited with {status} (may not have been running)");
         }
+    }
+
+    // The daemon is down: its preference files can be swapped without it
+    // writing them back. A failure here only costs the remembered models.
+    let science_dir = data_dir.clone().unwrap_or_else(self::data_dir);
+    if let Err(error) = swap_model_settings(&science_dir, &model_profiles_path(), profile) {
+        log::warn!("[claude-science] could not swap model settings to {profile}: {error}");
     }
 
     let mut cmd = Command::new(&exe);
@@ -353,6 +366,79 @@ fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
     }
     log::info!("[claude-science] daemon started");
     Ok(())
+}
+
+const OFFICIAL_PROFILE: &str = "official";
+
+/// Where MultiClaude keeps each mode's Science model settings.
+fn model_profiles_path() -> PathBuf {
+    crate::config::get_app_config_dir().join("claude-science-models.json")
+}
+
+/// Science's per-org model settings that live on this machine (the default
+/// model is kept on the account server and survives a gateway visit by
+/// itself). Every `*Model` key counts, so a new one is covered too.
+fn is_model_setting(key: &str) -> bool {
+    key.ends_with("Model") || key.ends_with("Models")
+}
+
+/// Save the model settings of the mode that was running and put back the
+/// ones last used in `profile`. Profiles are keyed by org directory, so two
+/// signed-in orgs keep separate choices.
+///
+/// File shape: `{"active": "<profile>", "profiles": {"<profile>": {"<org>": {..}}}}`.
+fn swap_model_settings(science_dir: &Path, store: &Path, profile: &str) -> Result<(), AppError> {
+    let mut state: Value = std::fs::read(store)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .filter(Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}));
+    // Before MultiClaude ever switched, Science ran on its account.
+    let previous = state
+        .get("active")
+        .and_then(Value::as_str)
+        .unwrap_or(OFFICIAL_PROFILE)
+        .to_string();
+
+    let Ok(entries) = std::fs::read_dir(science_dir.join("orgs")) else {
+        return Ok(());
+    };
+    for entry in entries.flatten() {
+        let prefs_path = entry.path().join("preferences.json");
+        let Ok(bytes) = std::fs::read(&prefs_path) else {
+            continue;
+        };
+        let Ok(Value::Object(mut prefs)) = serde_json::from_slice::<Value>(&bytes) else {
+            continue;
+        };
+        let org = entry.file_name().to_string_lossy().to_string();
+
+        let saved: serde_json::Map<String, Value> = prefs
+            .iter()
+            .filter(|(key, _)| is_model_setting(key))
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect();
+        state["profiles"][&previous][&org] = Value::Object(saved);
+
+        if previous == profile {
+            continue;
+        }
+        prefs.retain(|key, _| !is_model_setting(key));
+        if let Some(Value::Object(restored)) =
+            state["profiles"].get(profile).and_then(|p| p.get(&org))
+        {
+            for (key, value) in restored {
+                prefs.insert(key.clone(), value.clone());
+            }
+        }
+        let text = serde_json::to_vec_pretty(&Value::Object(prefs))
+            .map_err(|e| AppError::json(&prefs_path, e))?;
+        crate::config::atomic_write(&prefs_path, &text)?;
+    }
+
+    state["active"] = Value::String(profile.to_string());
+    let text = serde_json::to_vec_pretty(&state).map_err(|e| AppError::json(store, e))?;
+    crate::config::atomic_write(store, &text)
 }
 
 /// `claude-science.exe` is a console program. Spawned from the GUI without
@@ -460,6 +546,60 @@ mod tests {
             PathBuf::from("C:/Users/x/AppData/Local/Programs/ClaudeScience/claude-science.exe")
         );
         assert_eq!(resolve_exe(Some("  "), None), None);
+    }
+
+    fn write_prefs(dir: &Path, org: &str, prefs: serde_json::Value) {
+        let org_dir = dir.join("orgs").join(org);
+        std::fs::create_dir_all(&org_dir).unwrap();
+        std::fs::write(org_dir.join("preferences.json"), prefs.to_string()).unwrap();
+    }
+
+    fn read_prefs(dir: &Path, org: &str) -> serde_json::Value {
+        let bytes = std::fs::read(dir.join("orgs").join(org).join("preferences.json")).unwrap();
+        serde_json::from_slice(&bytes).unwrap()
+    }
+
+    #[test]
+    fn model_settings_come_back_when_science_returns_to_its_account() {
+        let tmp = tempfile::tempdir().unwrap();
+        let science = tmp.path().join("science");
+        let store = tmp.path().join("models.json");
+        write_prefs(
+            &science,
+            "org1",
+            serde_json::json!({"reviewerModel": "claude-sonnet-5-5", "autoMode": false}),
+        );
+
+        // Into the gateway: the official choice is put aside, nothing to restore yet.
+        swap_model_settings(&science, &store, "route").unwrap();
+        let prefs = read_prefs(&science, "org1");
+        assert!(prefs.get("reviewerModel").is_none());
+        assert_eq!(prefs["autoMode"], false);
+
+        // The user picks a gateway model while routed.
+        write_prefs(
+            &science,
+            "org1",
+            serde_json::json!({"reviewerModel": "claude-opus-5", "autoMode": false}),
+        );
+
+        // Back to the account: the official choice returns.
+        swap_model_settings(&science, &store, OFFICIAL_PROFILE).unwrap();
+        assert_eq!(read_prefs(&science, "org1")["reviewerModel"], "claude-sonnet-5-5");
+
+        // And the routed one waits for the next visit.
+        swap_model_settings(&science, &store, "route").unwrap();
+        assert_eq!(read_prefs(&science, "org1")["reviewerModel"], "claude-opus-5");
+    }
+
+    #[test]
+    fn restarting_in_the_same_mode_keeps_the_settings() {
+        let tmp = tempfile::tempdir().unwrap();
+        let science = tmp.path().join("science");
+        let store = tmp.path().join("models.json");
+        write_prefs(&science, "org1", serde_json::json!({"reviewerModel": "claude-sonnet-5-5"}));
+        swap_model_settings(&science, &store, OFFICIAL_PROFILE).unwrap();
+        assert_eq!(read_prefs(&science, "org1")["reviewerModel"], "claude-sonnet-5-5");
     }
 
     #[test]
