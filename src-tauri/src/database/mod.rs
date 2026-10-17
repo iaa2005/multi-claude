@@ -39,7 +39,8 @@ pub use dao::custom_icons::{CustomIconEntry, CUSTOM_ICONS_KEY};
 /// 里的 `DEFAULT` 字面量必须跟这里一致（那里写的是 SQL 文本，取不到这个常量）。
 pub const DEFAULT_PROXY_PORT: u16 = 15723;
 pub(crate) use dao::providers_seed::{
-    is_official_seed_id, CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID, CODEX_OFFICIAL_PROVIDER_ID,
+    is_official_seed_id, CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID, CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID,
+    CODEX_OFFICIAL_PROVIDER_ID,
     GROKBUILD_OFFICIAL_PROVIDER_ID,
 };
 pub(crate) use dao::proxy::{PRICING_SOURCE_REQUEST, PRICING_SOURCE_RESPONSE};

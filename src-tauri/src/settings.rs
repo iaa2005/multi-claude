@@ -50,6 +50,8 @@ pub struct VisibleApps {
     pub pi: bool,
     #[serde(default = "default_true")]
     pub mcode: bool,
+    #[serde(default = "default_true")]
+    pub claude_science: bool,
 }
 
 impl Default for VisibleApps {
@@ -65,6 +67,7 @@ impl Default for VisibleApps {
             hermes: false, // 默认不显示，需用户手动启用
             pi: true,
             mcode: true,
+            claude_science: true,
         }
     }
 }
@@ -83,6 +86,7 @@ impl VisibleApps {
             AppType::Hermes => self.hermes,
             AppType::Pi => self.pi,
             AppType::Mcode => self.mcode,
+            AppType::ClaudeScience => self.claude_science,
         }
     }
 }
@@ -489,6 +493,9 @@ pub struct AppSettings {
     /// 当前 Claude Desktop 供应商 ID（本地存储，优先于数据库 is_current）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_provider_claude_desktop: Option<String>,
+    /// 当前 Claude Science 供应商 ID（本地存储，优先于数据库 is_current）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_provider_claude_science: Option<String>,
     /// 当前 Codex 供应商 ID（本地存储，优先于数据库 is_current）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_provider_codex: Option<String>,
@@ -610,6 +617,7 @@ impl Default for AppSettings {
             pi_config_dir: None,
             current_provider_claude: None,
             current_provider_claude_desktop: None,
+            current_provider_claude_science: None,
             current_provider_codex: None,
             current_provider_gemini: None,
             current_provider_grokbuild: None,
@@ -1118,6 +1126,7 @@ pub fn get_current_provider(app_type: &AppType) -> Option<String> {
     match app_type {
         AppType::Claude => settings.current_provider_claude.clone(),
         AppType::ClaudeDesktop => settings.current_provider_claude_desktop.clone(),
+        AppType::ClaudeScience => settings.current_provider_claude_science.clone(),
         AppType::Codex => settings.current_provider_codex.clone(),
         AppType::Gemini => settings.current_provider_gemini.clone(),
         AppType::GrokBuild => settings.current_provider_grokbuild.clone(),
@@ -1137,6 +1146,7 @@ pub fn set_current_provider(app_type: &AppType, id: Option<&str>) -> Result<(), 
     mutate_settings(|settings| match app_type {
         AppType::Claude => settings.current_provider_claude = id_owned.clone(),
         AppType::ClaudeDesktop => settings.current_provider_claude_desktop = id_owned.clone(),
+        AppType::ClaudeScience => settings.current_provider_claude_science = id_owned.clone(),
         AppType::Codex => settings.current_provider_codex = id_owned.clone(),
         AppType::Gemini => settings.current_provider_gemini = id_owned.clone(),
         AppType::GrokBuild => settings.current_provider_grokbuild = id_owned.clone(),

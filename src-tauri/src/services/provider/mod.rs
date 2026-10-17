@@ -5641,6 +5641,9 @@ impl ProviderService {
                     grok_direct::switch_to(state.db.as_ref(), None, &provider)?;
                     return Ok(true);
                 }
+                // Adding a card must not restart the Science daemon behind the
+                // user's back; it runs on claude.ai until they switch.
+                AppType::ClaudeScience => return Ok(true),
                 _ => {}
             }
             // No current provider, set as current and sync. Managed Codex adds
@@ -6653,6 +6656,16 @@ impl ProviderService {
             gemini_direct::switch_to(state.db.as_ref(), provider)?;
             return Ok(SwitchResult::default());
         }
+        // Science direct mode: the daemon is the "live file". Apply first, so
+        // a failed restart leaves the pointer where it was.
+        if matches!(app_type, AppType::ClaudeScience) {
+            crate::claude_science::apply_provider(provider)?;
+            crate::settings::set_current_provider(&app_type, Some(&provider.id))?;
+            state
+                .db
+                .set_current_provider(app_type.as_str(), &provider.id)?;
+            return Ok(SwitchResult::default());
+        }
         if matches!(app_type, AppType::GrokBuild) {
             return Self::switch_grok_direct(state, provider, providers);
         }
@@ -6967,7 +6980,7 @@ impl ProviderService {
             AppType::OpenCode => Self::extract_opencode_common_config(&provider.settings_config),
             AppType::OpenClaw => Self::extract_openclaw_common_config(&provider.settings_config),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
-            AppType::Pi | AppType::Mcode => Ok(String::new()),
+            AppType::Pi | AppType::Mcode | AppType::ClaudeScience => Ok(String::new()),
         }
     }
 
@@ -6985,7 +6998,7 @@ impl ProviderService {
             AppType::OpenCode => Self::extract_opencode_common_config(settings_config),
             AppType::OpenClaw => Self::extract_openclaw_common_config(settings_config),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
-            AppType::Pi | AppType::Mcode => Ok(String::new()),
+            AppType::Pi | AppType::Mcode | AppType::ClaudeScience => Ok(String::new()),
         }
     }
 
@@ -7621,6 +7634,9 @@ impl ProviderService {
     fn validate_provider_settings(app_type: &AppType, provider: &Provider) -> Result<(), AppError> {
         icon::validate_icon(provider.icon.as_deref())?;
         match app_type {
+            AppType::ClaudeScience => {
+                crate::claude_science::validate_provider(provider)?;
+            }
             AppType::Claude => {
                 if !provider.settings_config.is_object() {
                     return Err(AppError::localized(
@@ -7771,7 +7787,7 @@ impl ProviderService {
         app_type: &AppType,
     ) -> Result<(String, String), AppError> {
         match app_type {
-            AppType::Claude => {
+            AppType::Claude | AppType::ClaudeScience => {
                 let env = provider
                     .settings_config
                     .get("env")

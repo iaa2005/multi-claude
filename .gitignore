@@ -32,3 +32,4 @@ mainWindow.js
 
 # Upstream CC Switch checkout used as a local reference
 /vendor/
+/src-tauri/target-test/

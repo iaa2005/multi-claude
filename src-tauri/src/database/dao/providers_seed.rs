@@ -12,6 +12,7 @@
 use crate::app_config::AppType;
 
 pub(crate) const CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID: &str = "claude-desktop-official";
+pub(crate) const CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID: &str = "claude-science-official";
 pub(crate) const CODEX_OFFICIAL_PROVIDER_ID: &str = "codex-official";
 pub(crate) const GROKBUILD_OFFICIAL_PROVIDER_ID: &str = "grokbuild-official";
 
@@ -49,6 +50,16 @@ pub(crate) const OFFICIAL_SEEDS: &[OfficialProviderSeed] = &[
         icon: "anthropic",
         icon_color: "#D4915D",
         // 空 env 只是占位；切换该 provider 时会恢复 Claude Desktop 1P 模式
+        settings_config_json: r#"{"env":{}}"#,
+    },
+    OfficialProviderSeed {
+        id: CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID,
+        app_type: AppType::ClaudeScience,
+        name: "Claude Science Official",
+        website_url: "https://claude.ai",
+        icon: "anthropic",
+        icon_color: "#D4915D",
+        // 空 env：切到它时守护进程不带任何 ANTHROPIC_* 重启，回到登录的 claude.ai 账号
         settings_config_json: r#"{"env":{}}"#,
     },
     OfficialProviderSeed {
@@ -103,6 +114,17 @@ mod tests {
 
         assert_eq!(seed.app_type, AppType::ClaudeDesktop);
         assert!(is_official_seed_id(CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID));
+    }
+
+    #[test]
+    fn official_seeds_include_claude_science() {
+        let seed = OFFICIAL_SEEDS
+            .iter()
+            .find(|seed| seed.id == CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID)
+            .expect("claude science official seed");
+
+        assert_eq!(seed.app_type, AppType::ClaudeScience);
+        assert_eq!(seed.settings_config_json, r#"{"env":{}}"#);
     }
 
     #[test]

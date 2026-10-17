@@ -19,6 +19,7 @@ export interface AppConfig {
 export const APP_IDS: AppId[] = [
   "claude",
   "claude-desktop",
+  "claude-science",
   "codex",
   "gemini",
   "grokbuild",
@@ -32,6 +33,7 @@ export const APP_IDS: AppId[] = [
 export const DEFAULT_VISIBLE_APPS: VisibleApps = {
   claude: true,
   "claude-desktop": true,
+  "claude-science": true,
   codex: true,
   gemini: true,
   grokbuild: true,
@@ -56,13 +58,19 @@ export const SKILLS_APP_IDS: AppId[] = [
 
 export type ProxyAppId = Extract<
   AppId,
-  "claude" | "claude-desktop" | "codex" | "gemini" | "grokbuild"
+  | "claude"
+  | "claude-desktop"
+  | "claude-science"
+  | "codex"
+  | "gemini"
+  | "grokbuild"
 >;
 
 /** Apps with a complete local gateway + failover data plane. */
 export const PROXY_APP_IDS: ProxyAppId[] = [
   "claude",
   "claude-desktop",
+  "claude-science",
   "codex",
   "gemini",
   "grokbuild",
@@ -74,12 +82,16 @@ export function isProxyAppId(appId: string): appId is ProxyAppId {
 
 /** 支持 Stack 模式的应用（后端 `mode::stack::supports_stack` 的镜像）。
  * claude-desktop 是聚合的主要受益者：一次看到所有成员的模型，增删成员不用重启。 */
-export type StackAppId = Extract<AppId, "claude" | "codex" | "claude-desktop">;
+export type StackAppId = Extract<
+  AppId,
+  "claude" | "codex" | "claude-desktop" | "claude-science"
+>;
 
 export const STACK_APP_IDS: StackAppId[] = [
   "claude",
   "codex",
   "claude-desktop",
+  "claude-science",
 ];
 
 export function isStackAppId(appId: string): appId is StackAppId {
@@ -119,7 +131,10 @@ export function usesEditorView(appId: AppId): boolean {
 }
 
 /** Claude Desktop、OpenClaw 不由 CC Switch 管理 MCP；Pi 1.0 起内置 MCP（`~/.pi/agent/mcp.json`） */
-export type McpAppId = Exclude<AppId, "claude-desktop" | "openclaw">;
+export type McpAppId = Exclude<
+  AppId,
+  "claude-desktop" | "claude-science" | "openclaw"
+>;
 export const MCP_APP_IDS: McpAppId[] = [
   "claude",
   "codex",
@@ -151,6 +166,14 @@ export const APP_ICON_MAP: Record<AppId, AppConfig> = {
       "bg-amber-500/10 ring-1 ring-amber-500/20 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300",
     badgeClass:
       "bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 border-0 gap-1.5",
+  },
+  "claude-science": {
+    label: "Claude Science",
+    icon: <ClaudeIcon size={14} />,
+    activeClass:
+      "bg-violet-500/10 ring-1 ring-violet-500/20 hover:bg-violet-500/20 text-violet-700 dark:text-violet-300",
+    badgeClass:
+      "bg-violet-500/10 text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 border-0 gap-1.5",
   },
   codex: {
     label: "Codex",

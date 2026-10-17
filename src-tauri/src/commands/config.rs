@@ -82,6 +82,13 @@ pub async fn get_config_status(
                 path: status.config_library_path.unwrap_or_default(),
             })
         }
+        AppType::ClaudeScience => {
+            let dir = crate::claude_science::data_dir();
+            Ok(ConfigStatus {
+                exists: dir.exists(),
+                path: dir.to_string_lossy().into_owned(),
+            })
+        }
         AppType::Codex => {
             let auth_path = codex_config::get_codex_auth_path();
             let config_text = codex_config::read_codex_config_text().unwrap_or_default();
@@ -171,6 +178,7 @@ pub async fn get_config_dir(app: String) -> Result<String, String> {
         AppType::ClaudeDesktop => {
             crate::claude_desktop_config::get_config_library_path().map_err(|e| e.to_string())?
         }
+        AppType::ClaudeScience => crate::claude_science::data_dir(),
         AppType::Codex => codex_config::get_codex_config_dir(),
         AppType::Gemini => crate::gemini_config::get_gemini_dir(),
         AppType::GrokBuild => crate::grok_config::get_grok_config_dir(),
@@ -194,6 +202,7 @@ pub async fn open_config_folder(handle: AppHandle, app: String) -> Result<bool, 
         AppType::ClaudeDesktop => {
             crate::claude_desktop_config::get_config_library_path().map_err(|e| e.to_string())?
         }
+        AppType::ClaudeScience => crate::claude_science::data_dir(),
         AppType::Codex => codex_config::get_codex_config_dir(),
         AppType::Gemini => crate::gemini_config::get_gemini_dir(),
         AppType::GrokBuild => crate::grok_config::get_grok_config_dir(),
@@ -429,4 +438,51 @@ pub async fn extract_common_config_snippet(
 
     crate::services::provider::ProviderService::extract_common_config_snippet(&state, app)
         .map_err(|e| e.to_string())
+}
+
+/// Claude Science's daemon state, for the banner on its provider page.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeScienceStatus {
+    pub installed: bool,
+    pub running: bool,
+    pub port: Option<u16>,
+    pub version: Option<String>,
+    /// Why the status could not be read (an old build, a broken install).
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn get_claude_science_status() -> Result<ClaudeScienceStatus, String> {
+    let installed = crate::claude_science::exe_path().is_some_and(|path| path.exists());
+    if !installed {
+        return Ok(ClaudeScienceStatus {
+            installed: false,
+            running: false,
+            port: None,
+            version: None,
+            error: None,
+        });
+    }
+    // `status` launches the Bun CLI and waits for it; keep that off the async
+    // workers, the status bar calls this every five seconds.
+    let status = tauri::async_runtime::spawn_blocking(crate::claude_science::status)
+        .await
+        .map_err(|e| e.to_string())?;
+    match status {
+        Ok(status) => Ok(ClaudeScienceStatus {
+            installed: true,
+            running: status.running,
+            port: status.port,
+            version: status.version,
+            error: None,
+        }),
+        Err(error) => Ok(ClaudeScienceStatus {
+            installed: true,
+            running: false,
+            port: None,
+            version: None,
+            error: Some(error.to_string()),
+        }),
+    }
 }

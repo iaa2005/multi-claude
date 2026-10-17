@@ -57,7 +57,7 @@ import {
   type ClaudeDesktopDefaultRoute,
 } from "@/lib/api/providers";
 import { resolveManagedAccountId } from "@/lib/authBinding";
-import type { ManagedAuthProvider } from "@/lib/api";
+import type { AppId, ManagedAuthProvider } from "@/lib/api";
 import { useCopilotAuth, useCodexOauth, useXaiOauth } from "./hooks";
 import { isOAuthProviderType } from "@/config/constants";
 
@@ -79,6 +79,8 @@ type PresetEntry = {
 };
 
 export interface ClaudeDesktopProviderFormProps {
+  /** Which 3P client this form is editing; the route ids are shared. */
+  appId?: AppId;
   submitLabel: string;
   onSubmit: (values: ClaudeDesktopProviderFormValues) => Promise<void> | void;
   onCancel: () => void;
@@ -241,6 +243,7 @@ function defaultRouteRows(
 }
 
 export function ClaudeDesktopProviderForm({
+  appId = "claude-desktop",
   submitLabel,
   onSubmit,
   onCancel,
@@ -409,7 +412,7 @@ export function ClaudeDesktopProviderForm({
     isPartner: apiKeyLinkIsPartner,
     partnerPromotionKey: apiKeyLinkPromotionKey,
   } = useApiKeyLink({
-    appId: "claude-desktop",
+    appId,
     category: apiKeyLinkCategory,
     selectedPresetId,
     presetEntries,

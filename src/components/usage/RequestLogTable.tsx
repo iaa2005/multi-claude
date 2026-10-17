@@ -86,6 +86,7 @@ export function appDisplayName(appType: string): string {
 const APP_SHORT_NAME: Record<AppId, string> = {
   claude: "Claude",
   "claude-desktop": "Desktop",
+  "claude-science": "Science",
   codex: "Codex",
   gemini: "Gemini",
   grokbuild: "Grok",

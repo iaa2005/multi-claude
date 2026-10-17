@@ -4550,7 +4550,7 @@ fn extract_env_vars_from_config(
 
         // 处理 base_url: 根据应用类型添加对应的环境变量
         let base_url_key = match app_type {
-            AppType::Claude | AppType::ClaudeDesktop => Some("ANTHROPIC_BASE_URL"),
+            AppType::Claude | AppType::ClaudeDesktop | AppType::ClaudeScience => Some("ANTHROPIC_BASE_URL"),
             AppType::Gemini => Some("GOOGLE_GEMINI_BASE_URL"),
             _ => None,
         };

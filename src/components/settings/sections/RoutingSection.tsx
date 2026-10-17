@@ -127,6 +127,7 @@ export function RoutingSection({ onOpenApp }: RoutingSectionProps) {
   const providerQueries = {
     claude: useProvidersQuery("claude").data,
     "claude-desktop": desktop,
+    "claude-science": useProvidersQuery("claude-science").data,
     codex: useProvidersQuery("codex").data,
     gemini: useProvidersQuery("gemini").data,
     grokbuild: useProvidersQuery("grokbuild").data,

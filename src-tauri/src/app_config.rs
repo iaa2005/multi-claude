@@ -38,7 +38,7 @@ impl McpApps {
             AppType::Hermes => self.hermes,
             AppType::Mcode => self.mcode,
             AppType::Pi => self.pi,
-            AppType::ClaudeDesktop => false,
+            AppType::ClaudeDesktop | AppType::ClaudeScience => false,
         }
     }
 
@@ -54,7 +54,7 @@ impl McpApps {
             AppType::Hermes => self.hermes = enabled,
             AppType::Mcode => self.mcode = enabled,
             AppType::Pi => self.pi = enabled,
-            AppType::ClaudeDesktop => {} // Claude Desktop 3P provider config doesn't support MCP here
+            AppType::ClaudeDesktop | AppType::ClaudeScience => {} // neither 3P client uses CC Switch MCP here
         }
     }
 
@@ -135,7 +135,7 @@ impl SkillApps {
             AppType::Pi => self.pi,
             AppType::Mcode => self.mcode,
             AppType::OpenClaw => false, // OpenClaw doesn't support Skills
-            AppType::ClaudeDesktop => false,
+            AppType::ClaudeDesktop | AppType::ClaudeScience => false,
         }
     }
 
@@ -151,7 +151,7 @@ impl SkillApps {
             AppType::Pi => self.pi = enabled,
             AppType::Mcode => self.mcode = enabled,
             AppType::OpenClaw => {} // OpenClaw doesn't support Skills, ignore
-            AppType::ClaudeDesktop => {} // Claude Desktop 3P profiles don't use CC Switch skill sync
+            AppType::ClaudeDesktop | AppType::ClaudeScience => {} // neither 3P client uses CC Switch skill sync
         }
     }
 
@@ -415,6 +415,12 @@ pub enum AppType {
     Hermes,
     Pi,
     Mcode,
+    #[serde(
+        rename = "claude-science",
+        alias = "claude_science",
+        alias = "claudeScience"
+    )]
+    ClaudeScience,
 }
 
 impl AppType {
@@ -430,6 +436,7 @@ impl AppType {
             AppType::Hermes => "hermes",
             AppType::Pi => "pi",
             AppType::Mcode => "mcode",
+            AppType::ClaudeScience => "claude-science",
         }
     }
 
@@ -450,6 +457,7 @@ impl AppType {
             self,
             AppType::Claude
                 | AppType::ClaudeDesktop
+                | AppType::ClaudeScience
                 | AppType::Codex
                 | AppType::Gemini
                 | AppType::GrokBuild
@@ -469,6 +477,7 @@ impl AppType {
             AppType::Hermes,
             AppType::Pi,
             AppType::Mcode,
+            AppType::ClaudeScience,
         ]
         .into_iter()
     }
@@ -490,10 +499,11 @@ impl FromStr for AppType {
             "hermes" => Ok(AppType::Hermes),
             "pi" => Ok(AppType::Pi),
             "mcode" => Ok(AppType::Mcode),
+            "claude-science" | "claude_science" | "claudescience" => Ok(AppType::ClaudeScience),
             other => Err(AppError::localized(
                 "unsupported_app",
-                format!("不支持的应用标识: '{other}'。可选值: claude, claude-desktop, codex, gemini, grokbuild, opencode, openclaw, hermes, pi。"),
-                format!("Unsupported app id: '{other}'. Allowed: claude, claude-desktop, codex, gemini, grokbuild, opencode, openclaw, hermes, pi."),
+                format!("不支持的应用标识: '{other}'。可选值: claude, claude-desktop, claude-science, codex, gemini, grokbuild, opencode, openclaw, hermes, pi。"),
+                format!("Unsupported app id: '{other}'. Allowed: claude, claude-desktop, claude-science, codex, gemini, grokbuild, opencode, openclaw, hermes, pi."),
             )),
         }
     }
@@ -526,7 +536,7 @@ impl CommonConfigSnippets {
     pub fn get(&self, app: &AppType) -> Option<&String> {
         match app {
             AppType::Claude => self.claude.as_ref(),
-            AppType::ClaudeDesktop => None,
+            AppType::ClaudeDesktop | AppType::ClaudeScience => None,
             AppType::Codex => self.codex.as_ref(),
             AppType::Gemini => self.gemini.as_ref(),
             AppType::GrokBuild => None,
@@ -541,7 +551,7 @@ impl CommonConfigSnippets {
     pub fn set(&mut self, app: &AppType, snippet: Option<String>) {
         match app {
             AppType::Claude => self.claude = snippet,
-            AppType::ClaudeDesktop => {}
+            AppType::ClaudeDesktop | AppType::ClaudeScience => {}
             AppType::Codex => self.codex = snippet,
             AppType::Gemini => self.gemini = snippet,
             AppType::GrokBuild => {}
@@ -874,7 +884,7 @@ impl MultiAppConfig {
             AppType::Hermes => &mut config.prompts.hermes.prompts,
             // Pi was added after prompts moved to SQLite. Keeping it out of
             // this legacy config avoids a second, unused prompt state.
-            AppType::Pi | AppType::Mcode => return Ok(false),
+            AppType::Pi | AppType::Mcode | AppType::ClaudeScience => return Ok(false),
         };
 
         prompts.insert(id, prompt);
@@ -918,7 +928,7 @@ impl MultiAppConfig {
                 AppType::OpenCode => &self.mcp.opencode.servers,
                 AppType::OpenClaw => continue, // OpenClaw MCP is still in development, skip
                 AppType::Hermes => continue,   // Hermes didn't exist in v3.6.x, skip
-                AppType::Pi | AppType::Mcode => continue, // Pi didn't exist in v3.6.x, skip
+                AppType::Pi | AppType::Mcode | AppType::ClaudeScience => continue, // didn't exist in v3.6.x, skip
             };
 
             for (id, entry) in old_servers {
@@ -1049,6 +1059,19 @@ mod tests {
             AppType::ClaudeDesktop
         );
         assert_eq!(AppType::ClaudeDesktop.as_str(), "claude-desktop");
+    }
+
+    #[test]
+    fn app_type_parses_claude_science_aliases() {
+        for id in ["claude-science", "claude_science", "claudeScience"] {
+            assert_eq!(id.parse::<AppType>().unwrap(), AppType::ClaudeScience);
+        }
+        assert_eq!(AppType::ClaudeScience.as_str(), "claude-science");
+        // Switch mode, not additive: Science has one active provider, like
+        // Claude Desktop. It now has its own gateway route, so the mode
+        // machinery may consider it proxy-capable.
+        assert!(!AppType::ClaudeScience.is_additive_mode());
+        assert!(AppType::ClaudeScience.supports_local_proxy());
     }
 
     struct TempHome {

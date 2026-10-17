@@ -30,3 +30,6 @@ export type {
   ManagedAuthStatus,
   ManagedAuthDeviceCodeResponse,
 } from "./auth";
+
+export { claudeScienceApi } from "./claudeScience";
+export type { ClaudeScienceStatus } from "./claudeScience";

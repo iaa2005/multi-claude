@@ -34,9 +34,10 @@ const COPILOT_UNIT_PREMIUM: &str = "requests";
 pub const TRAY_ID: &str = "cc-switch";
 
 /// 进托盘的应用，顺序和侧栏一致。累加式应用没有「当前供应商」，不进托盘。
-pub const TRAY_APPS: [AppType; 5] = [
+pub const TRAY_APPS: [AppType; 6] = [
     AppType::Claude,
     AppType::ClaudeDesktop,
+    AppType::ClaudeScience,
     AppType::Codex,
     AppType::Gemini,
     AppType::GrokBuild,
@@ -47,6 +48,7 @@ fn app_display_name(app: &AppType) -> &'static str {
     match app {
         AppType::Claude => "Claude Code",
         AppType::ClaudeDesktop => "Claude Desktop",
+        AppType::ClaudeScience => "Claude Science",
         AppType::Codex => "Codex",
         AppType::Gemini => "Gemini CLI",
         AppType::GrokBuild => "Grok Build",
@@ -2939,6 +2941,7 @@ mod tests {
             [
                 "Claude Code",
                 "Claude Desktop",
+                "Claude Science",
                 "Codex",
                 "Gemini CLI",
                 "Grok Build"

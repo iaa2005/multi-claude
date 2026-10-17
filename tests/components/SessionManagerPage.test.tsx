@@ -280,6 +280,7 @@ describe("SessionManagerPage", () => {
       visibleApps: {
         claude: true,
         "claude-desktop": true,
+        "claude-science": false,
         codex: true,
         gemini: false,
         grokbuild: false,

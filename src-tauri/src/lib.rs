@@ -17,6 +17,7 @@ mod gemini_config;
 mod gemini_mcp;
 mod grok_config;
 pub mod hermes_config;
+pub mod claude_science;
 mod init_status;
 mod jsonc_document;
 mod lightweight;
@@ -787,6 +788,11 @@ pub fn run() {
                 Ok(_) => {}
                 Err(e) => log::warn!("✗ Failed to seed official providers: {e}"),
             }
+            match app_state.db.backfill_claude_science_official_seed() {
+                Ok(true) => log::info!("✓ Seeded Claude Science Official"),
+                Ok(false) => {}
+                Err(e) => log::warn!("✗ Failed to seed Claude Science Official: {e}"),
+            }
 
             {
                 let db_for_codex_history_migration = app_state.db.clone();
@@ -1436,6 +1442,7 @@ pub fn run() {
             commands::switch_provider,
             commands::import_default_config,
             commands::get_claude_desktop_status,
+            commands::get_claude_science_status,
             commands::get_claude_desktop_default_routes,
             commands::import_claude_desktop_providers_from_claude,
             commands::ensure_claude_desktop_official_provider,

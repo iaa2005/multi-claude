@@ -1,0 +1,158 @@
+# Claude Science in CC Switch
+
+Status: **wired end to end, not yet tested against a running install.**
+`claude_science.rs` owns environment construction and the daemon lifecycle;
+`AppType::ClaudeScience` exists across the Rust and TS registries; provider
+switching validates, restarts the daemon, and commits the pointer only after
+it starts. The gateway serves `/claude-science/v1/{models,messages}` with its
+own provider namespace and usage bucket, inheriting Claude's pricing settings
+like Desktop does. Science is in `PROXY_APPS`, so the existing direct/route
+mode panel drives it: entering proxy writes the gateway environment and
+leaving writes the direct provider back (or restarts on the official account
+when there is none). The app page shows a daemon status bar on a 5s poll.
+Remaining: a real end-to-end run (see the warning below), and optional usage
+import from Science's own database.
+
+## What Claude Science is
+
+A scientific agent that ships as `claude-science.exe` (0.1.63 at the time of
+writing): a Bun CLI that starts a local daemon (default `127.0.0.1:8000`) and
+opens a browser UI. It signs in to claude.ai, stores state in
+`~/.claude-science`, and fetches the model list over an Anthropic-style API
+(`models-last-good.json` is keyed by `<base url>|org:<id>`).
+
+It is **not** an Electron client with a provider config file. There is no
+`claude_desktop_config.json` equivalent: the inference endpoint comes from the
+daemon's environment.
+
+## Does it support a third-party endpoint?
+
+Yes, and deliberately so. Measured in the binary:
+
+- reads `process.env.ANTHROPIC_BASE_URL`, `ANTHROPIC_API_KEY`,
+  `ANTHROPIC_AUTH_TOKEN` and constructs the Anthropic client with that
+  `baseURL`;
+- validates the URL and rejects plain http **except literal loopback hosts**:
+  `http://127.0.0.1:…` and `http://[::1]:…` are allowed;
+- keeps `ANTHROPIC_BASE_URL` in its secret-redaction lists, so it is treated as
+  a first-class setting rather than an accident.
+
+Caveats measured or visible in the code:
+
+- **Science never sends the env credential.** Its client throws "This build
+  requires signing in with your Claude account. API keys are not supported."
+  and signs every request to `ANTHROPIC_BASE_URL` with the claude.ai OAuth
+  token (measured 2026-10-18: DeepSeek answered 401 to the daemon, 404 to the
+  same `/v1/models` call with the real key). So direct mode is official-only;
+  third-party providers work only through the gateway, which accepts the
+  sign-in token on loopback and replaces it with the provider's key.
+
+- Sign-in to claude.ai is still required for the app's account/org; the base
+  URL changes inference, not authentication.
+- The daemon reads the environment at startup. A provider switch means
+  `claude-science stop` → `claude-science serve --no-browser --detached` with
+  the new environment. There is no live reload.
+- Science consumes the model catalog from the endpoint. A local model whose id
+  does not look like a Claude model may be filtered or assigned no tier — the
+  same class of problem Claude Desktop had (`dd1aaf6`: route ids must be
+  `claude-…`, display names carry the real model).
+
+## Recommended shape
+
+Point Science at the **CC Switch gateway**, not at the upstream provider
+directly:
+
+```
+Claude Science ──ANTHROPIC_BASE_URL──▶ http://127.0.0.1:15723/claude-science
+                                        │
+                                        └─▶ provider routes (DeepSeek, MiMo, Monet Local, …)
+```
+
+Reasons:
+
+- provider switching, failover, model routes and usage logging stay in one
+  place — this is what the user asked for ("CC Switch with DeepSeek as the
+  replacement for the official Anthropic provider");
+- `/v1/models` can publish `claude-*` route ids and hide upstream names,
+  which is what Science (like Desktop) expects;
+- direct mode (env pointing straight at a provider's `/anthropic` endpoint)
+  remains useful as a fallback, but gives up usage and failover.
+
+The existing Desktop machinery is the template:
+
+| Concern | Claude Desktop | Claude Science |
+| --- | --- | --- |
+| Provider storage | `providers` row, `settings_config.env` | same row shape, same `env` keys |
+| Model routes | `meta.claudeDesktopModelRoutes` | reuse the same map |
+| Gateway URL | `proxy_gateway_base_url_from_db` + `/claude-desktop` | same, `/claude-science` |
+| Gateway token | `get_or_create_gateway_token` | same token (or a per-app one) |
+| Apply | write `claude_desktop_config.json` profile | restart daemon with env |
+| Mode lifecycle | `mode::{direct,route,stack}` | direct/route/stack, restart on change |
+
+## Touch points found in the fork
+
+Rust (`src-tauri/src`):
+
+- `app_config.rs` — `AppType` enum, `as_str`, `all`, `FromStr`, MCP/prompt
+  containers, `is_additive_mode`, `supports_local_proxy`; every exhaustive
+  match (the compiler will list them).
+- `proxy/server.rs` — route matching for `/claude-desktop/v1/...`; add
+  `/claude-science/v1/models` and `/v1/messages`.
+- `proxy/handlers.rs` — the `(app_type, some("/claude-desktop"))` table and
+  `select_providers("claude-desktop")`.
+- `proxy/usage/*` — fold or bucket Science usage under its own app id; the
+  Desktop commit did the same (`7ef1f22`).
+- `commands/proxy.rs`, `services/provider/mod.rs`, `database/*` — provider
+  lifecycle, where `claude-desktop` appears.
+- `claude_science.rs` — this branch: env construction, URL validation,
+  `status`, `stop`, `serve`; unit tests.
+
+Frontend (`src`):
+
+- `lib/api/types.ts` (`AppId`), `config/appConfig.tsx` (`APP_IDS`,
+  `APP_ICON_MAP`, `PROXY_APP_IDS`/Stack), `types/usage.ts`
+  (`AppType`, `KNOWN_APP_TYPES`).
+- `components/providers/forms/` — reuse `ClaudeDesktopProviderForm` (same env
+  + model routes) under the new app id; `presentation.ts`, `ProviderList.tsx`,
+  `AddProviderDialog.tsx`.
+- i18n labels and the app icon.
+
+## Proposed commits
+
+1. **Foundation** (done): `claude_science.rs` + tests + this document.
+2. **App type + provider switching (direct mode)** (done): `AppType::ClaudeScience`,
+   the registries, the reused provider form, and apply = stop/serve with the
+   provider's env. Save commits the current-provider pointer only after the
+   daemon accepts the environment.
+3. **Gateway route** (done): `/claude-science/v1/models` and `/v1/messages`,
+   its own provider namespace, model list from the same route table the form
+   edits, and usage under `claude-science` with Claude's pricing settings.
+   Proxy switching refuses to point Science at a proxy that is not running.
+4. **Mode lifecycle** (done): Science joined `PROXY_APPS`. `write_proxy`
+   restarts the daemon with the gateway environment (contract key includes
+   the route so only a real route change restarts it), `write_direct` writes
+   the direct provider back and `restart_official` returns to claude.ai when
+   there is none. The reused direct/route panel is the UI; no Stack.
+   A `get_claude_science_status` command and the status bar show the daemon
+   and offer a refresh.
+5. **Polish**: icon, i18n, docs, usage import from Science's DB if wanted.
+
+## Test plan
+
+- Unit: `cargo test claude_science` (URL rules, env extraction, args, exe
+  resolution). No daemon is started by the tests.
+- Manual spike (safe, separate data dir): run Science with
+  `--data-dir` pointing at a scratch folder so the real scientific data is not
+  touched, then check whether its model picker lists the gateway's aliases and
+  whether one short chat completes. The real data dir contains the user's
+  research and must not be the first test target.
+- End-to-end on the real install only after the spike: switch provider in CC
+  Switch → daemon restarts → UI shows a fresh sign-in link → chat uses the
+  routed model.
+
+## Warning for development
+
+Our own session runs through the compiled `MultiClaude.exe` in the repository
+root, whose gateway listens on 15723. Do **not** replace that exe or start a
+second instance on the same port while working: `cargo check/test` is safe,
+`pnpm tauri dev` and an in-place rebuild are not.

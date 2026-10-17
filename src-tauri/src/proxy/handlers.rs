@@ -291,6 +291,56 @@ pub async fn handle_claude_desktop_models(
     Ok(Json(response))
 }
 
+// ============================================================================
+// Claude Science gateway
+// ============================================================================
+
+/// Science reads its endpoint from the daemon environment, so it reaches the
+/// same Anthropic face as Desktop. The provider namespace and the usage
+/// bucket are its own; the model list comes from the same route table the
+/// Desktop form edits.
+pub async fn handle_claude_science_messages(
+    State(state): State<ProxyState>,
+    request: axum::extract::Request,
+) -> Result<axum::response::Response, ProxyError> {
+    validate_claude_science_gateway_auth(&state, request.headers()).await?;
+    handle_messages_for_app(
+        state,
+        request,
+        AppType::ClaudeScience,
+        "Claude Science",
+        "claude-science",
+        Some("/claude-science"),
+    )
+    .await
+}
+
+pub async fn handle_claude_science_models(
+    State(state): State<ProxyState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Json<Value>, ProxyError> {
+    validate_claude_science_gateway_auth(&state, &headers).await?;
+    // Aggregation and routing publish the same shape: one entry per upstream
+    // model, named after it, with the provider as the description. Science
+    // shows both in its picker, unlike Desktop's tier slots.
+    let models = if crate::mode::stack::stack_mode_now(&AppType::ClaudeScience) {
+        crate::mode::stack::published_now(&state.db, AppType::ClaudeScience)
+            .map_err(|e| ProxyError::DatabaseError(e.to_string()))?
+    } else {
+        let providers = state
+            .provider_router
+            .select_providers("claude-science")
+            .await
+            .map_err(|e| ProxyError::DatabaseError(e.to_string()))?;
+        let provider = providers.first().ok_or(ProxyError::NoAvailableProvider)?;
+        crate::claude_desktop_config::science_route_models(provider)
+            .map_err(|e| ProxyError::ConfigError(e.to_string()))?
+    };
+    Ok(Json(crate::claude_desktop_config::stack_model_list_response(
+        &models,
+    )))
+}
+
 async fn handle_messages_for_app(
     state: ProxyState,
     request: axum::extract::Request,
@@ -407,6 +457,37 @@ async fn handle_messages_for_app(
         connection_guard,
     )
     .await
+}
+
+/// Science signs every request with the claude.ai token it is logged in with
+/// ("API keys are not supported" in its client), never with the
+/// ANTHROPIC_AUTH_TOKEN it was started with, so the gateway token cannot be
+/// required. The inbound credential is dropped by the forwarder and replaced
+/// with the provider's key. Without the token the route only answers while
+/// the proxy listens on loopback, so it never serves provider keys to the LAN.
+async fn validate_claude_science_gateway_auth(
+    state: &ProxyState,
+    headers: &axum::http::HeaderMap,
+) -> Result<(), ProxyError> {
+    if validate_claude_desktop_gateway_auth(state, headers).is_ok() {
+        return Ok(());
+    }
+    let listen_address = state.config.read().await.listen_address.clone();
+    if science_route_open_without_token(&listen_address) {
+        return Ok(());
+    }
+    Err(ProxyError::AuthError(
+        "Claude Science gateway accepts its sign-in token only while the proxy listens on loopback"
+            .to_string(),
+    ))
+}
+
+fn science_route_open_without_token(listen_address: &str) -> bool {
+    let host = listen_address.trim().trim_start_matches('[').trim_end_matches(']');
+    host.eq_ignore_ascii_case("localhost")
+        || host
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback())
 }
 
 fn validate_claude_desktop_gateway_auth(
@@ -3238,12 +3319,28 @@ async fn log_usage(
 }
 
 #[cfg(test)]
+mod science_auth_tests {
+    use super::science_route_open_without_token;
+
+    #[test]
+    fn science_route_is_open_only_on_loopback() {
+        for open in ["127.0.0.1", "::1", "[::1]", "localhost", "127.0.0.2"] {
+            assert!(science_route_open_without_token(open), "{open}");
+        }
+        for closed in ["0.0.0.0", "::", "192.168.1.10", ""] {
+            assert!(!science_route_open_without_token(closed), "{closed}");
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::{
         body_looks_like_sse, chat_sse_to_response_value, classify_body_for_diagnostics,
         codex_proxy_error_json, responses_sse_stream_to_anthropic_message,
         responses_sse_to_response_value, rewritten_sse_response_builder,
-        should_use_claude_transform_streaming, transform, upstream_body_parse_error,
+        should_use_claude_transform_streaming, transform,
+        upstream_body_parse_error,
     };
     use crate::proxy::ProxyError;
     use bytes::Bytes;

@@ -220,6 +220,7 @@ export interface UsageRangeSelection {
 export type AppType =
   | "claude"
   | "claude-desktop"
+  | "claude-science"
   | "codex"
   | "gemini"
   | "grokbuild"
@@ -232,6 +233,7 @@ export type AppTypeFilter = "all" | AppType;
 export const KNOWN_APP_TYPES: ReadonlyArray<AppType> = [
   "claude",
   "claude-desktop",
+  "claude-science",
   "codex",
   "gemini",
   "grokbuild",

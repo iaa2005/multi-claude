@@ -96,6 +96,7 @@ import { UsagePage } from "@/components/usage/UsagePage";
 import { EnvWarningBanner } from "@/components/env/EnvWarningBanner";
 import { SwitchModePanel } from "@/components/providers/mode/SwitchModePanel";
 import { DesktopAccessBar } from "@/components/providers/mode/DesktopAccessBar";
+import { ClaudeScienceStatusBar } from "@/components/providers/mode/ClaudeScienceStatusBar";
 import { proxyApi } from "@/lib/api/proxy";
 import type { AppMode, StartupAttachFailure } from "@/types/proxy";
 import UsageScriptModal from "@/components/UsageScriptModal";
@@ -1315,6 +1316,8 @@ function App() {
                 current={providers[currentProviderId]}
                 onOpenRoutingSettings={() => openSettings("routing")}
               />
+            ) : proxyAppId === "claude-science" ? (
+              <ClaudeScienceStatusBar />
             ) : undefined
           }
           {...listCallbacks}
