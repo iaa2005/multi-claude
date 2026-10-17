@@ -226,13 +226,36 @@ pub struct ScienceStatus {
 
 pub fn status() -> Result<ScienceStatus, AppError> {
     let exe = exe_path().ok_or_else(missing_exe)?;
-    let out = Command::new(&exe)
+    let out = hidden(&mut Command::new(&exe))
         .arg("status")
         .args(data_dir_args(configured_data_dir().as_deref()))
         .stdin(Stdio::null())
         .output()
         .map_err(|e| AppError::io(&exe, e))?;
     serde_json::from_slice(&out.stdout).map_err(|e| AppError::json(&exe, e))
+}
+
+/// The seeded "Claude Science Official" card: no endpoint override, the
+/// daemon runs on the claude.ai account it is signed in to.
+pub fn is_official(provider: &crate::provider::Provider) -> bool {
+    provider.id == crate::database::CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID
+}
+
+/// Check a provider before it is saved or switched to.
+pub fn validate_provider(provider: &crate::provider::Provider) -> Result<(), AppError> {
+    if is_official(provider) {
+        return Ok(());
+    }
+    gateway_from_provider(&provider.settings_config).map(|_| ())
+}
+
+/// Direct mode: restart the daemon on this provider, or on claude.ai for the
+/// official card.
+pub fn apply_provider(provider: &crate::provider::Provider) -> Result<(), AppError> {
+    if is_official(provider) {
+        return restart_official();
+    }
+    apply(&gateway_from_provider(&provider.settings_config)?)
 }
 
 /// Restart the daemon with this environment.
@@ -268,7 +291,7 @@ fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
 
     // Not running is the normal case on the first switch; the exit status is
     // not worth surfacing.
-    if let Ok(status) = Command::new(&exe)
+    if let Ok(status) = hidden(&mut Command::new(&exe))
         .args(stop_args())
         .args(data_dir_args(data_dir.as_deref()))
         .stdin(Stdio::null())
@@ -282,7 +305,8 @@ fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
     }
 
     let mut cmd = Command::new(&exe);
-    cmd.args(serve_args())
+    hidden(&mut cmd)
+        .args(serve_args())
         .args(data_dir_args(data_dir.as_deref()))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -294,12 +318,6 @@ fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
         .env_remove("ANTHROPIC_AUTH_TOKEN");
     for (key, value) in env_pairs(gateway) {
         cmd.env(key, value);
-    }
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
     let out = cmd.output().map_err(|e| AppError::io(&exe, e))?;
@@ -318,6 +336,19 @@ fn restart(gateway: Option<&ScienceGateway>) -> Result<(), AppError> {
     }
     log::info!("[claude-science] daemon started");
     Ok(())
+}
+
+/// `claude-science.exe` is a console program. Spawned from the GUI without
+/// this flag, every call opens a console window, and the status bar polls
+/// `status` every five seconds.
+fn hidden(cmd: &mut Command) -> &mut Command {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
 }
 
 /// The environment a restart contributes. Empty means "official account".

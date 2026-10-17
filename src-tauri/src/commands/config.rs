@@ -464,7 +464,12 @@ pub async fn get_claude_science_status() -> Result<ClaudeScienceStatus, String> 
             error: None,
         });
     }
-    match crate::claude_science::status() {
+    // `status` launches the Bun CLI and waits for it; keep that off the async
+    // workers, the status bar calls this every five seconds.
+    let status = tauri::async_runtime::spawn_blocking(crate::claude_science::status)
+        .await
+        .map_err(|e| e.to_string())?;
+    match status {
         Ok(status) => Ok(ClaudeScienceStatus {
             installed: true,
             running: status.running,

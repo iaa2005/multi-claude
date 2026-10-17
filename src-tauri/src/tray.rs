@@ -2941,6 +2941,7 @@ mod tests {
             [
                 "Claude Code",
                 "Claude Desktop",
+                "Claude Science",
                 "Codex",
                 "Gemini CLI",
                 "Grok Build"
