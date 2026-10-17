@@ -325,7 +325,7 @@ export function ProviderForm(props: ProviderFormProps) {
   if (props.appId === "pi") {
     return <PiProviderForm {...props} />;
   }
-  if (props.appId === "claude-desktop") {
+  if (props.appId === "claude-desktop" || props.appId === "claude-science") {
     return <ClaudeDesktopProviderForm {...props} />;
   }
   if (props.appId === "grokbuild") {

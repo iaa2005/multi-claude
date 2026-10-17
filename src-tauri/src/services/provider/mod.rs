@@ -6577,6 +6577,13 @@ impl ProviderService {
             return Self::switch_normal(state, app_type, id, &providers);
         }
 
+        // Claude Science has no config file to write: the switch is a daemon
+        // restart with a new environment. It is handled before the generic
+        // live-write path, which would otherwise refuse it.
+        if matches!(app_type, AppType::ClaudeScience) {
+            return Self::switch_claude_science(state, _provider);
+        }
+
         // 切换和进入 / 退出代理都会改客户端文件和指针。按应用串行，拿到锁、补完上一次
         // 没做完的写入之后再读模式和指针：刚进入代理的应用不会被一次直连写入覆盖，上次
         // 失败后重试也按补完后的指针删上一家的独有字段。
@@ -6613,6 +6620,24 @@ impl ProviderService {
 
         // Normal mode: full switch with Live config write
         Self::switch_normal(state, app_type, id, &providers)
+    }
+
+    /// Claude Science keeps its endpoint in the daemon's environment, so the
+    /// switch is a restart rather than a file rewrite. Validate first, let the
+    /// daemon accept the new environment, and commit the pointer only then:
+    /// a failed restart must not leave the database claiming a provider the
+    /// running daemon is not using.
+    fn switch_claude_science(
+        state: &AppState,
+        provider: &Provider,
+    ) -> Result<SwitchResult, AppError> {
+        let gateway = crate::claude_science::gateway_from_provider(&provider.settings_config)?;
+        crate::claude_science::apply(&gateway)?;
+        crate::settings::set_current_provider(&AppType::ClaudeScience, Some(&provider.id))?;
+        state
+            .db
+            .set_current_provider(AppType::ClaudeScience.as_str(), &provider.id)?;
+        Ok(SwitchResult::default())
     }
 
     /// Normal switch flow (non-proxy mode)
@@ -6967,7 +6992,7 @@ impl ProviderService {
             AppType::OpenCode => Self::extract_opencode_common_config(&provider.settings_config),
             AppType::OpenClaw => Self::extract_openclaw_common_config(&provider.settings_config),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
-            AppType::Pi | AppType::Mcode => Ok(String::new()),
+            AppType::Pi | AppType::Mcode | AppType::ClaudeScience => Ok(String::new()),
         }
     }
 
@@ -6985,7 +7010,7 @@ impl ProviderService {
             AppType::OpenCode => Self::extract_opencode_common_config(settings_config),
             AppType::OpenClaw => Self::extract_openclaw_common_config(settings_config),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
-            AppType::Pi | AppType::Mcode => Ok(String::new()),
+            AppType::Pi | AppType::Mcode | AppType::ClaudeScience => Ok(String::new()),
         }
     }
 
@@ -7621,6 +7646,9 @@ impl ProviderService {
     fn validate_provider_settings(app_type: &AppType, provider: &Provider) -> Result<(), AppError> {
         icon::validate_icon(provider.icon.as_deref())?;
         match app_type {
+            AppType::ClaudeScience => {
+                crate::claude_science::gateway_from_provider(&provider.settings_config)?;
+            }
             AppType::Claude => {
                 if !provider.settings_config.is_object() {
                     return Err(AppError::localized(
@@ -7771,7 +7799,7 @@ impl ProviderService {
         app_type: &AppType,
     ) -> Result<(String, String), AppError> {
         match app_type {
-            AppType::Claude => {
+            AppType::Claude | AppType::ClaudeScience => {
                 let env = provider
                     .settings_config
                     .get("env")

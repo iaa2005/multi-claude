@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export const APP_DISPLAY_NAME: Record<AppId, string> = {
   claude: "Claude Code",
   "claude-desktop": "Claude Desktop",
+  "claude-science": "Claude Science",
   codex: "Codex",
   gemini: "Gemini CLI",
   grokbuild: "Grok Build",
@@ -20,6 +21,7 @@ export const APP_DISPLAY_NAME: Record<AppId, string> = {
 const APP_ICON_NAME: Record<AppId, string> = {
   claude: "claude",
   "claude-desktop": "claude",
+  "claude-science": "claude",
   codex: "openai",
   gemini: "gemini",
   grokbuild: "grok",

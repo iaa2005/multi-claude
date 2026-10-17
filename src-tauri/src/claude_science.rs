@@ -158,6 +158,12 @@ pub fn exe_path() -> Option<PathBuf> {
     )
 }
 
+/// Science's own data directory (`~/.claude-science`), also the natural
+/// target for "open config folder" in the UI.
+pub fn data_dir() -> PathBuf {
+    crate::config::get_home_dir().join(".claude-science")
+}
+
 fn resolve_exe(override_path: Option<&str>, local_appdata: Option<&str>) -> Option<PathBuf> {
     if let Some(path) = override_path.map(str::trim).filter(|s| !s.is_empty()) {
         return Some(PathBuf::from(path));

@@ -5,6 +5,7 @@ import type { AppId } from "@/lib/api/types";
 export type AppType =
   | "claude"
   | "claude-desktop"
+  | "claude-science"
   | "codex"
   | "gemini"
   | "grokbuild"
@@ -18,6 +19,7 @@ export type AppType =
 export interface SkillApps {
   claude: boolean;
   "claude-desktop"?: boolean;
+  "claude-science"?: boolean;
   codex: boolean;
   gemini: boolean;
   grokbuild?: boolean;

@@ -301,7 +301,7 @@ fn settings_contain_common_config(app_type: &AppType, settings: &Value, snippet:
         | AppType::Hermes
         | AppType::Pi
         | AppType::Mcode
-        | AppType::ClaudeDesktop => false,
+        | AppType::ClaudeDesktop | AppType::ClaudeScience => false,
     }
 }
 
@@ -377,7 +377,7 @@ pub(crate) fn remove_common_config_from_settings(
         | AppType::Hermes
         | AppType::Pi
         | AppType::Mcode
-        | AppType::ClaudeDesktop => Ok(settings.clone()),
+        | AppType::ClaudeDesktop | AppType::ClaudeScience => Ok(settings.clone()),
     }
 }
 
@@ -536,6 +536,13 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
                 "claude_desktop.live.requires_db_context",
                 "Claude Desktop 配置写入需要通过供应商切换流程执行",
                 "Claude Desktop configuration must be written through the provider switch flow",
+            ));
+        }
+        AppType::ClaudeScience => {
+            return Err(AppError::localized(
+                "claude_science.live.requires_process",
+                "Claude Science 的端点写在守护进程环境里，只能经供应商切换流程重启写入",
+                "Claude Science keeps its endpoint in the daemon environment; write it through the provider switch flow",
             ));
         }
         AppType::Codex => {
@@ -904,6 +911,11 @@ pub fn read_live_settings(app_type: AppType) -> Result<Value, AppError> {
             "Claude Desktop 3P 配置不支持作为通用 live 配置导入，请使用“从 Claude 导入兼容供应商”。",
             "Claude Desktop 3P configuration cannot be imported as a generic live config. Use 'Import compatible providers from Claude' instead.",
         )),
+        AppType::ClaudeScience => Err(AppError::localized(
+            "claude_science.live.read_unsupported",
+            "Claude Science 没有可读的 live 配置文件：端点来自守护进程环境",
+            "Claude Science has no live config file to read: its endpoint comes from the daemon environment",
+        )),
         AppType::Gemini => {
             use crate::gemini_config::{
                 env_to_json, get_gemini_env_path, get_gemini_settings_path, read_gemini_env,
@@ -1054,6 +1066,13 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
                 "claude_desktop.import_unsupported",
                 "Claude Desktop 3P 配置不能通过通用导入读取，请使用“从 Claude 导入兼容供应商”。",
                 "Claude Desktop 3P config cannot be imported through the generic import flow. Use 'Import compatible providers from Claude' instead.",
+            ));
+        }
+        AppType::ClaudeScience => {
+            return Err(AppError::localized(
+                "claude_science.import_unsupported",
+                "Claude Science 不保存供应商配置文件，通用导入不适用。",
+                "Claude Science keeps no provider file; the generic import does not apply.",
             ));
         }
         AppType::Gemini => {

@@ -1,8 +1,11 @@
 # Claude Science in CC Switch
 
-Status: **foundation** (this branch). `src-tauri/src/claude_science.rs` builds
-and tests the environment/process half; the app type, proxy route and UI are
-not wired yet.
+Status: **app type and direct switching wired; gateway route and usage still
+pending.** `claude_science.rs` owns environment construction and the daemon
+lifecycle; `AppType::ClaudeScience` exists across the Rust and TS registries,
+provider switching validates and restarts the daemon, and the provider UI
+reuses the Claude Desktop form. The proxy route `/claude-science` is not
+served yet — the next slice.
 
 ## What Claude Science is
 
@@ -102,13 +105,16 @@ Frontend (`src`):
 
 ## Proposed commits
 
-1. **Foundation** (this branch): `claude_science.rs` + tests + this document.
-2. **App type + provider switching (direct mode)**: `AppType::ClaudeScience`,
-   provider form/presets, apply = stop/serve with the provider's env.
+1. **Foundation** (done): `claude_science.rs` + tests + this document.
+2. **App type + provider switching (direct mode)** (done): `AppType::ClaudeScience`,
+   the registries, the reused provider form, and apply = stop/serve with the
+   provider's env. Save commits the current-provider pointer only after the
+   daemon accepts the environment.
 3. **Gateway route**: `/claude-science` in the proxy, model aliases, usage
    bucket; apply = gateway URL + token.
 4. **Mode lifecycle**: route/stack, restart-on-change, status surface in the
-   UI ("daemon running on port 8000").
+   UI ("daemon running on port 8000"). The reused Desktop form still shows its
+   mode controls; they are inert for Science until this slice.
 5. **Polish**: icon, i18n, docs, usage import from Science's DB if wanted.
 
 ## Test plan
