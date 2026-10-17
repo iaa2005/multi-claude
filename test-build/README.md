@@ -5,11 +5,19 @@
 Старая MultiClaude при этом продолжает работать: у тестовой сборки другой
 identifier и отдельные каталоги.
 
+## Почему CC_SWITCH_TEST_HOME
+
+`DeviceStore` (live-state — кто каким клиентом владеет) намеренно не следует
+override каталога конфигурации. Поэтому лончер дополнительно задаёт
+`CC_SWITCH_TEST_HOME`, а в его каталог кладёт `live-state.direct.json`: все
+клиенты помечены direct, и при старте тестовая сборка ничего не переписывает
+у Claude/Codex/Gemini/Grok. Прокси на старом порту не поднимается.
+
 ## Что изолировано
 
 | Что | Где |
 | --- | --- |
-| База, настройки, live-state, логи приложения | `%USERPROFILE%\.multiclaude-science-test` |
+| База, настройки, live-state, логи приложения | `%USERPROFILE%\.multiclaude-science-test-home\.multiclaude` |
 | Данные демона Claude Science | `%USERPROFILE%\.claude-science-test` |
 
 Реальный `%USERPROFILE%\.claude-science` не трогается (бэкап от 2026-10-17:
@@ -29,7 +37,7 @@ MultiClaude. Прямой режим Science прокси не нужен. Пе�
 
 ## Логи
 
-`%USERPROFILE%\.multiclaude-science-test\logs\cc-switch.log`
+`%USERPROFILE%\.multiclaude-science-test-home\.multiclaude\logs\cc-switch.log`
 
 Строки Claude Science помечены `[claude-science]`: какой режим применён,
 какой base URL, есть ли креды (значения не пишутся), какой data-dir, что
@@ -46,5 +54,6 @@ MultiClaude. Прямой режим Science прокси не нужен. Пе�
 6. Переключение провайдера перезапускает демон Science — его вкладка в
    браузере потребует новую ссылку входа (`claude-science url`).
 
-Прибрать после теста: удалить оба каталога `%USERPROFILE%\.multiclaude-science-test`
-и `%USERPROFILE%\.claude-science-test`.
+Прибрать после теста: удалить `%USERPROFILE%\.multiclaude-science-test-home`,
+`%USERPROFILE%\.claude-science-test` и старый `%USERPROFILE%\.multiclaude-science-test`
+(от первой попытки, когда изоляция ещё не покрывала live-state).
