@@ -58,7 +58,12 @@ export const SKILLS_APP_IDS: AppId[] = [
 
 export type ProxyAppId = Extract<
   AppId,
-  "claude" | "claude-desktop" | "claude-science" | "codex" | "gemini" | "grokbuild"
+  | "claude"
+  | "claude-desktop"
+  | "claude-science"
+  | "codex"
+  | "gemini"
+  | "grokbuild"
 >;
 
 /** Apps with a complete local gateway + failover data plane. */
@@ -126,7 +131,10 @@ export function usesEditorView(appId: AppId): boolean {
 }
 
 /** Claude Desktop、OpenClaw 不由 CC Switch 管理 MCP；Pi 1.0 起内置 MCP（`~/.pi/agent/mcp.json`） */
-export type McpAppId = Exclude<AppId, "claude-desktop" | "claude-science" | "openclaw">;
+export type McpAppId = Exclude<
+  AppId,
+  "claude-desktop" | "claude-science" | "openclaw"
+>;
 export const MCP_APP_IDS: McpAppId[] = [
   "claude",
   "codex",
