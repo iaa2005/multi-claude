@@ -417,6 +417,11 @@ pub(crate) fn write_live_for_state(
         return Ok(());
     }
 
+    if matches!(app_type, AppType::ClaudeScience) {
+        // The daemon is the live config. Only the official card runs without
+        // the gateway, and it has nothing to rewrite: leave the daemon alone.
+        return Ok(());
+    }
     if matches!(app_type, AppType::ClaudeDesktop) {
         crate::claude_desktop_config::reapply_current(db, provider)?;
         log::info!(

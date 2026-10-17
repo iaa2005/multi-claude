@@ -5641,6 +5641,9 @@ impl ProviderService {
                     grok_direct::switch_to(state.db.as_ref(), None, &provider)?;
                     return Ok(true);
                 }
+                // Adding a card must not restart the Science daemon behind the
+                // user's back; it runs on claude.ai until they switch.
+                AppType::ClaudeScience => return Ok(true),
                 _ => {}
             }
             // No current provider, set as current and sync. Managed Codex adds

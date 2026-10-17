@@ -249,14 +249,31 @@ pub fn validate_provider(provider: &crate::provider::Provider) -> Result<(), App
     gateway_from_provider(&provider.settings_config).map(|_| ())
 }
 
-/// Direct mode: restart the daemon on this provider, or on claude.ai for the
-/// official card.
+/// Direct mode: only the official card. Science signs every request with
+/// its claude.ai token and ignores ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN
+/// ("API keys are not supported" in its client), so pointing it straight at
+/// another vendor only earns a 401. Third-party providers go through the
+/// gateway (Route mode), which swaps in the provider's key.
 pub fn apply_provider(provider: &crate::provider::Provider) -> Result<(), AppError> {
     if is_official(provider) {
         return restart_official();
     }
-    apply(&gateway_from_provider(&provider.settings_config)?)
+    Err(AppError::Message(DIRECT_THIRD_PARTY.into()))
 }
+
+/// Leaving the gateway: a third-party direct pointer cannot be served
+/// directly (see `apply_provider`), so Science goes back to claude.ai.
+pub fn apply_direct_or_official(provider: &crate::provider::Provider) -> Result<(), AppError> {
+    if !is_official(provider) {
+        log::warn!(
+            "[claude-science] direct provider {} cannot be used without the gateway; restarting on claude.ai",
+            provider.id
+        );
+    }
+    restart_official()
+}
+
+const DIRECT_THIRD_PARTY: &str = "Claude Science signs requests with your claude.ai sign-in and ignores API keys, so a third-party provider only works through the gateway: switch Claude Science to Route mode and pick this provider there.";
 
 /// Restart the daemon with this environment.
 pub fn apply(gateway: &ScienceGateway) -> Result<(), AppError> {

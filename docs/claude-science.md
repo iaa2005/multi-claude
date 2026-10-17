@@ -39,6 +39,14 @@ Yes, and deliberately so. Measured in the binary:
 
 Caveats measured or visible in the code:
 
+- **Science never sends the env credential.** Its client throws "This build
+  requires signing in with your Claude account. API keys are not supported."
+  and signs every request to `ANTHROPIC_BASE_URL` with the claude.ai OAuth
+  token (measured 2026-10-18: DeepSeek answered 401 to the daemon, 404 to the
+  same `/v1/models` call with the real key). So direct mode is official-only;
+  third-party providers work only through the gateway, which accepts the
+  sign-in token on loopback and replaces it with the provider's key.
+
 - Sign-in to claude.ai is still required for the app's account/org; the base
   URL changes inference, not authentication.
 - The daemon reads the environment at startup. A provider switch means

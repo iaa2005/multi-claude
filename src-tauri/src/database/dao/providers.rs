@@ -842,10 +842,19 @@ impl Database {
         if self.get_bool_flag(FLAG).unwrap_or(false) {
             return Ok(false);
         }
+        let science = crate::app_config::AppType::ClaudeScience;
         let inserted = self.ensure_official_seed_by_id(
             crate::database::CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID,
-            crate::app_config::AppType::ClaudeScience,
+            science.clone(),
         )?;
+        // The daemon starts on claude.ai, so that is what is current until
+        // the user switches.
+        if self.get_current_provider(science.as_str())?.is_none() {
+            self.set_current_provider(
+                science.as_str(),
+                crate::database::CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID,
+            )?;
+        }
         self.set_setting(FLAG, "true")?;
         Ok(inserted)
     }

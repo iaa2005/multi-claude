@@ -631,7 +631,7 @@ fn write_direct(
             // Same shape, one level lower: the "file" is the daemon process.
             match usable_direct(app, direct.as_ref()) {
                 Some(provider) => {
-                    crate::claude_science::apply_provider(provider).map_err(err)?
+                    crate::claude_science::apply_direct_or_official(provider).map_err(err)?
                 }
                 None => crate::claude_science::restart_official().map_err(err)?,
             }
