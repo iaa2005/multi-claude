@@ -835,6 +835,21 @@ impl Database {
         Ok(inserted)
     }
 
+    /// Claude Science 晚于全局种子加入：已经播过种的库补一次它的官方条目。
+    /// 有自己的 flag，用户删掉后重启不会复活（和其它官方条目同一惯例）。
+    pub fn backfill_claude_science_official_seed(&self) -> Result<bool, AppError> {
+        const FLAG: &str = "claude_science_official_seeded";
+        if self.get_bool_flag(FLAG).unwrap_or(false) {
+            return Ok(false);
+        }
+        let inserted = self.ensure_official_seed_by_id(
+            crate::database::CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID,
+            crate::app_config::AppType::ClaudeScience,
+        )?;
+        self.set_setting(FLAG, "true")?;
+        Ok(inserted)
+    }
+
     /// 按 id 兜底插入单条 official seed（仅当目标表中该 id 不存在时插入）。
     ///
     /// 与 `init_default_official_providers` 不同：

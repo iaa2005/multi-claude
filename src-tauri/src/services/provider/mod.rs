@@ -6656,9 +6656,7 @@ impl ProviderService {
         // Science direct mode: the daemon is the "live file". Apply first, so
         // a failed restart leaves the pointer where it was.
         if matches!(app_type, AppType::ClaudeScience) {
-            let gateway =
-                crate::claude_science::gateway_from_provider(&provider.settings_config)?;
-            crate::claude_science::apply(&gateway)?;
+            crate::claude_science::apply_provider(provider)?;
             crate::settings::set_current_provider(&app_type, Some(&provider.id))?;
             state
                 .db
@@ -7634,7 +7632,7 @@ impl ProviderService {
         icon::validate_icon(provider.icon.as_deref())?;
         match app_type {
             AppType::ClaudeScience => {
-                crate::claude_science::gateway_from_provider(&provider.settings_config)?;
+                crate::claude_science::validate_provider(provider)?;
             }
             AppType::Claude => {
                 if !provider.settings_config.is_object() {

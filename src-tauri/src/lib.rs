@@ -788,6 +788,11 @@ pub fn run() {
                 Ok(_) => {}
                 Err(e) => log::warn!("✗ Failed to seed official providers: {e}"),
             }
+            match app_state.db.backfill_claude_science_official_seed() {
+                Ok(true) => log::info!("✓ Seeded Claude Science Official"),
+                Ok(false) => {}
+                Err(e) => log::warn!("✗ Failed to seed Claude Science Official: {e}"),
+            }
 
             {
                 let db_for_codex_history_migration = app_state.db.clone();

@@ -503,6 +503,11 @@ async fn write_proxy(
             // environment. The key includes the route so a route change
             // restarts it, while an unchanged route (a switch that only
             // re-states it) does not.
+            if crate::claude_science::is_official(route) {
+                return Err(
+                    "Claude Science Official uses the claude.ai sign-in and cannot be a gateway route; pick a provider with an endpoint".into(),
+                );
+            }
             let token = crate::claude_desktop_config::get_or_create_gateway_token(&state.db)
                 .map_err(err)?;
             let gateway =
@@ -626,10 +631,7 @@ fn write_direct(
             // Same shape, one level lower: the "file" is the daemon process.
             match usable_direct(app, direct.as_ref()) {
                 Some(provider) => {
-                    let gateway =
-                        crate::claude_science::gateway_from_provider(&provider.settings_config)
-                            .map_err(err)?;
-                    crate::claude_science::apply(&gateway).map_err(err)?;
+                    crate::claude_science::apply_provider(provider).map_err(err)?
                 }
                 None => crate::claude_science::restart_official().map_err(err)?,
             }
