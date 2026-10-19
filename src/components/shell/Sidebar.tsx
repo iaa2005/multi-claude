@@ -34,7 +34,7 @@ import { fmtUsd } from "@/components/usage/format";
 import { HoverTip } from "@/components/ui/hover-tip";
 import { DRAG_REGION_ATTR, DRAG_REGION_STYLE, isMac } from "@/lib/platform";
 import { cn } from "@/lib/utils";
-import ccswitchLogo from "@/assets/icons/logo.svg";
+import ccswitchLogo from "@/assets/icons/multiclaude.png";
 import { APP_DISPLAY_NAME, AppGlyph } from "./AppGlyph";
 
 const NO_DRAG = { WebkitAppRegion: "no-drag" } as React.CSSProperties;
@@ -141,7 +141,7 @@ function SidebarTopBar({
             className="pointer-events-none h-5 w-5 shrink-0"
           />
           <span className="pointer-events-none me-auto min-w-0 truncate text-strong font-semibold text-fg-1">
-            CC Switch
+            MultiClaude
           </span>
           {toggleButton}
         </div>
@@ -186,7 +186,7 @@ function SidebarTopBar({
             className="h-[22px] w-[22px] shrink-0"
           />
           <span className="truncate text-strong font-semibold text-fg-1">
-            CC Switch
+            MultiClaude
           </span>
         </span>
       )}
@@ -512,7 +512,7 @@ function NavItem({
   alert?: string;
   /** 圆点：有更新 */
   dot?: boolean;
-  /** 工具更新用中性色（很多人不想追新）；CC Switch 自己的更新用绿色，和工具更新分开 */
+  /** 工具更新用中性色（很多人不想追新）；MultiClaude 自己的更新用绿色，和工具更新分开 */
   dotTone?: "neutral" | "success";
   /** 圆点放在行尾（设置目录里的「关于」），而不是图标角上 */
   endDot?: boolean;
@@ -688,7 +688,7 @@ function SettingsDirectory({
       </div>
       {!collapsed && version && (
         <div className="shrink-0 px-4 pb-4 text-caption text-fg-3">
-          CC Switch v{version}
+          MultiClaude v{version}
         </div>
       )}
     </>
