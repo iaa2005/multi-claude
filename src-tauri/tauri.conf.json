@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MultiClaude",
-  "version": "4.0.12",
+  "version": "4.0.13",
   "identifier": "com.multiclaude.desktop",
   "build": {
     "frontendDist": "../dist",
@@ -61,10 +61,9 @@
       }
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM4MDI4QzlBNTczOTI4RTMKUldUaktEbFhtb3dDeUM5US9kT0FmdGR5Ti9vQzcwa2dTMlpibDVDUmQ2M0VGTzVOWnd0SGpFVlEK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY0MjFCMUYyODRBNTVCOUIKUldTYlc2V0U4ckVoOU42aGMrRDU4dmVCek1JOHFrWXBVU2FjS2tEM0tVN1BncEMwSmJwcDB0NysK",
       "endpoints": [
-        "https://dl.ccswitch.io/latest.json",
-        "https://github.com/farion1231/cc-switch/releases/latest/download/latest.json"
+        "https://github.com/iaa2005/multi-claude/releases/latest/download/latest.json"
       ]
     }
   }

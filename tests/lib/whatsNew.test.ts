@@ -87,10 +87,12 @@ describe("language and links", () => {
     expect(resolveWhatsNewLanguage("fr")).toBe("en");
   });
 
-  it("links to the website changelog, Traditional Chinese uses the zh pages", () => {
+  it("links to the MultiClaude release of that version, or the list", () => {
     expect(changelogUrl("en", "4.0.2")).toBe(
-      "https://ccswitch.io/en/changelog/4.0.2",
+      "https://github.com/iaa2005/multi-claude/releases/tag/v4.0.2-iaa2005",
     );
-    expect(changelogUrl("zh-TW")).toBe("https://ccswitch.io/zh/changelog");
+    expect(changelogUrl("zh-TW")).toBe(
+      "https://github.com/iaa2005/multi-claude/releases",
+    );
   });
 });

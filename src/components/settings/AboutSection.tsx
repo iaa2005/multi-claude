@@ -1,3 +1,4 @@
+import { REPO_URL, releaseUrl } from "@/config/project";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Download,
@@ -96,22 +97,7 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
   const handleOpenReleaseNotes = useCallback(async () => {
     try {
       const targetVersion = updateInfo?.availableVersion ?? version ?? "";
-      const displayVersion = targetVersion.startsWith("v")
-        ? targetVersion
-        : targetVersion
-          ? `v${targetVersion}`
-          : "";
-
-      if (!displayVersion) {
-        await settingsApi.openExternal(
-          "https://github.com/farion1231/cc-switch/releases",
-        );
-        return;
-      }
-
-      await settingsApi.openExternal(
-        `https://github.com/farion1231/cc-switch/releases/tag/${displayVersion}`,
-      );
+      await settingsApi.openExternal(releaseUrl(targetVersion));
     } catch (error) {
       console.error("[AboutSection] Failed to open release notes", error);
       toast.error(t("settings.openReleaseNotesFailed"));
@@ -119,7 +105,7 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
   }, [t, updateInfo?.availableVersion, version]);
 
   const handleOpenGithub = useCallback(() => {
-    void settingsApi.openExternal("https://github.com/farion1231/cc-switch");
+    void settingsApi.openExternal(REPO_URL);
   }, []);
 
   const handleDismissStarPrompt = useCallback(() => {
@@ -270,7 +256,7 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
           type="button"
           variant="neutral"
           size="compact"
-          onClick={() => settingsApi.openExternal("https://ccswitch.io")}
+          onClick={() => settingsApi.openExternal(REPO_URL)}
         >
           <Globe className="h-3.5 w-3.5" />
           {t("settings.officialWebsite")}
