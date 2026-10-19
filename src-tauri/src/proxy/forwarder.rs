@@ -1497,6 +1497,18 @@ impl RequestForwarder {
             .parse::<http::Uri>()
             .ok()
             .and_then(|u| u.authority().map(|a| a.to_string()));
+
+        // Claude Code announces tools that appear mid-session with
+        // tool_addition/tool_removal blocks; only Anthropic reads them.
+        if matches!(
+            app_type,
+            AppType::Claude | AppType::ClaudeDesktop | AppType::ClaudeScience
+        ) && !super::tool_changes::upstream_reads_tool_changes(base_url_host.as_deref())
+            && super::tool_changes::inline_tool_changes(&mut mapped_body)
+        {
+            log::info!("[{}] inlined mid-session tool changes for a non-Anthropic upstream", app_type.as_str());
+        }
+
         let opencode_conversation_fingerprint = if !self.session_client_provided
             && !headers.contains_key("x-opencode-session")
             && native_session_header(headers).is_none()
