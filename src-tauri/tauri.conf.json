@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MultiClaude",
   "mainBinaryName": "MultiClaude",
-  "version": "4.0.13",
+  "version": "4.0.14",
   "identifier": "com.multiclaude.desktop",
   "build": {
     "frontendDist": "../dist",

@@ -17,7 +17,7 @@ if errorlevel 1 (
   exit /b 1
 )
 cd /d "%~dp0.."
-pnpm tauri build --config "{\"bundle\":{\"createUpdaterArtifacts\":false}}" %*
+call pnpm tauri build --config "{\"bundle\":{\"createUpdaterArtifacts\":false}}" %*
 if errorlevel 1 exit /b 1
 
 set "KEY_FILE=%USERPROFILE%\.tauri\multiclaude-updater.key"

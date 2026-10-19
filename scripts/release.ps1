@@ -21,8 +21,11 @@ $nsis = "$root\src-tauri\target\release\bundle\nsis"
 $installerName = "MultiClaude_${version}_x64-setup.exe"
 $installer = "$nsis\$installerName"
 $signature = "$installer.sig"
-$portable = "$root\src-tauri\target\release\cc-switch.exe"
-foreach ($file in $installer, $signature, $portable) {
+# The binary is MultiClaude.exe since 4.0.14 (mainBinaryName); older builds left cc-switch.exe.
+$portable = @("$root\src-tauri\target\release\MultiClaude.exe", "$root\src-tauri\target\release\cc-switch.exe") |
+  Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $portable) { throw "Missing the portable exe in src-tauri\target\release - run scripts\build.cmd first" }
+foreach ($file in $installer, $signature) {
   if (-not (Test-Path $file)) { throw "Missing $file - run scripts\build.cmd first" }
 }
 
