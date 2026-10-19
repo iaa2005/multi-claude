@@ -350,7 +350,7 @@
     },
     "unifyCodexHistory": {
       "title": "統一 Codex 會話歷史",
-      "message": "開啟後，Codex CLI 的 resume 清單會把官方訂閱與第三方的會話合併顯示（Codex 桌面版更新後已經可以顯示全部會話，不受影響）。注意：跨供應商繼續舊會話時，可能因對方後端無法解密 encrypted_content 推理內容而失敗。\n\n可選擇同時把現有官方會話歷史遷入共享清單（遷移前自動備份到 ~/.cc-switch/backups，關閉開關時可選擇恢復）。",
+      "message": "開啟後，Codex CLI 的 resume 清單會把官方訂閱與第三方的會話合併顯示（Codex 桌面版更新後已經可以顯示全部會話，不受影響）。注意：跨供應商繼續舊會話時，可能因對方後端無法解密 encrypted_content 推理內容而失敗。\n\n可選擇同時把現有官方會話歷史遷入共享清單（遷移前自動備份到 ~/.multiclaude/backups，關閉開關時可選擇恢復）。",
       "migrateExisting": "同時遷入現有官方會話歷史",
       "confirm": "我已了解，繼續開啟"
     },
@@ -888,7 +888,7 @@
     "configDirectoryDescription": "在 WSL 等環境使用 Claude Code 或 Codex 的時候，可手動指定為 WSL 裡的設定目錄，供應商資料與主環境保持一致。",
     "appConfigDir": "CC Switch 設定目錄",
     "appConfigDirDescription": "自訂 CC Switch 的設定儲存位置（指定至雲端同步資料夾即可雲端同步設定）",
-    "browsePlaceholderApp": "例如：C:\\Users\\Administrator\\.cc-switch",
+    "browsePlaceholderApp": "例如：C:\\Users\\Administrator\\.multiclaude",
     "claudeConfigDir": "Claude Code 設定目錄",
     "claudeConfigDirDescription": "覆寫 Claude 設定目錄 (settings.json)。真正自訂目錄會在目錄內存放 Claude MCP 的 .claude.json；預設 ~/.claude 目錄仍使用 Claude 預設的 ~/.claude.json。",
     "codexConfigDir": "Codex 設定目錄",
@@ -4097,6 +4097,10 @@
     "desktopUnsupported": "目前系統不支援",
     "desktopConnected": "已接入",
     "desktopNotConnected": "未接入",
+    "scienceHelp": "Claude Science 自行安裝和更新；MultiClaude 用你選的供應商重啟它的守護進程。",
+    "scienceRunning": "v{{version}} · 執行中",
+    "scienceStopped": "未執行",
+    "scienceMissing": "未安裝",
     "newVersion": "有新版本 {{version}}",
     "notRunnable": "無法執行",
     "updateNeedsNode": "新版本 {{version}} 需要 Node {{required}}，這處安裝用的是 Node {{current}}，需要先升級 Node。",

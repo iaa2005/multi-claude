@@ -350,7 +350,7 @@
     },
     "unifyCodexHistory": {
       "title": "Codex セッション履歴を統一",
-      "message": "オンにすると、Codex CLI の resume 一覧に公式サブスクリプションとサードパーティのセッションがまとめて表示されます（Codex デスクトップ版はアップデートで全セッションを表示できるようになったため影響しません）。注意：プロバイダーをまたいで古いセッションを再開すると、相手のバックエンドが encrypted_content の推論内容を復号できず失敗する場合があります。\n\n既存の公式セッション履歴を共有一覧へ移行することもできます（移行前に ~/.cc-switch/backups へ自動バックアップし、オフにする際に復元を選べます）。",
+      "message": "オンにすると、Codex CLI の resume 一覧に公式サブスクリプションとサードパーティのセッションがまとめて表示されます（Codex デスクトップ版はアップデートで全セッションを表示できるようになったため影響しません）。注意：プロバイダーをまたいで古いセッションを再開すると、相手のバックエンドが encrypted_content の推論内容を復号できず失敗する場合があります。\n\n既存の公式セッション履歴を共有一覧へ移行することもできます（移行前に ~/.multiclaude/backups へ自動バックアップし、オフにする際に復元を選べます）。",
       "migrateExisting": "既存の公式セッション履歴も移行する",
       "confirm": "理解しました、オンにする"
     },
@@ -888,7 +888,7 @@
     "configDirectoryDescription": "WSL などで Claude Code や Codex を使う場合、ここで設定ディレクトリを WSL 側に合わせるとデータを揃えられます。",
     "appConfigDir": "CC Switch 設定ディレクトリ",
     "appConfigDirDescription": "CC Switch の保存場所をカスタマイズします（クラウド同期フォルダを指定すると設定を同期できます）",
-    "browsePlaceholderApp": "例: C:\\\\Users\\\\Administrator\\\\.cc-switch",
+    "browsePlaceholderApp": "例: C:\\\\Users\\\\Administrator\\\\.multiclaude",
     "claudeConfigDir": "Claude Code 設定ディレクトリ",
     "claudeConfigDirDescription": "Claude の設定ディレクトリ（settings.json）を上書きします。カスタムディレクトリでは .claude.json（MCP）をその中に保存し、既定の ~/.claude では Claude Code の既定どおり ~/.claude.json を使います。",
     "codexConfigDir": "Codex 設定ディレクトリ",
@@ -4096,6 +4096,10 @@
     "desktopUnsupported": "このシステムには対応していません",
     "desktopConnected": "接続済み",
     "desktopNotConnected": "未接続",
+    "scienceHelp": "Claude Science は自身でインストール・更新されます。MultiClaude は選んだプロバイダーでデーモンを再起動します。",
+    "scienceRunning": "v{{version}} · 実行中",
+    "scienceStopped": "停止中",
+    "scienceMissing": "未インストール",
     "newVersion": "新しいバージョン {{version}}",
     "notRunnable": "実行できません",
     "updateNeedsNode": "{{version}} には Node {{required}} が必要ですが、このインストールは Node {{current}} で動いています。先に Node を更新してください。",
