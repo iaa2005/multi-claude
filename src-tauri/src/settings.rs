@@ -714,7 +714,7 @@ impl AppSettings {
             .language
             .as_ref()
             .map(|s| s.trim())
-            .filter(|s| matches!(*s, "en" | "zh" | "zh-TW" | "ja" | "tr"))
+            .filter(|s| matches!(*s, "en" | "zh" | "zh-TW" | "ja" | "tr" | "ru"))
             .map(|s| s.to_string());
 
         self.quota_display = self
