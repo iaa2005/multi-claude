@@ -329,7 +329,7 @@ fn with_member_switches(
 }
 
 /// 这个应用已落定的 Stack 名单。
-fn settled_stack(app: &AppType) -> Result<StackState, String> {
+pub(crate) fn settled_stack(app: &AppType) -> Result<StackState, String> {
     super::state::stack(&DeviceStore::for_device(), app.as_str()).map_err(err)
 }
 
@@ -1238,6 +1238,11 @@ impl StackWriteError {
 /// 但它靠客户端自己的登录做账号校验，不能当 Stack 目标。Codex 的行还要能解析：它的模型要
 /// 写进目录。
 fn check_stack_member(app: &AppType, provider: &Provider) -> Result<(), String> {
+    // Science's official card joins as "Claude on the subscription": the
+    // gateway forwards Science's own signed requests to Anthropic unchanged.
+    if matches!(app, AppType::ClaudeScience) && crate::claude_science::is_official(provider) {
+        return Ok(());
+    }
     let official = match app {
         AppType::Codex => codex_direct::is_official(provider),
         _ => provider.category.as_deref() == Some("official"),

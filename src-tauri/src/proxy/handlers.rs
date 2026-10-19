@@ -304,6 +304,27 @@ pub async fn handle_claude_science_messages(
     request: axum::extract::Request,
 ) -> Result<axum::response::Response, ProxyError> {
     validate_claude_science_gateway_auth(&state, request.headers()).await?;
+    // Aggregation: Claude models stay on the user's subscription. Science
+    // signs every request with its own claude.ai token, so a plain Claude id
+    // is forwarded to Anthropic untouched; aggregated ids go to providers.
+    let request = if science_subscription_in_stack() {
+        let (parts, body) = request.into_parts();
+        let bytes = body
+            .collect()
+            .await
+            .map_err(|e| ProxyError::InvalidRequest(e.to_string()))?
+            .to_bytes();
+        let model = serde_json::from_slice::<Value>(&bytes)
+            .ok()
+            .and_then(|v| v.get("model").and_then(Value::as_str).map(str::to_string))
+            .unwrap_or_default();
+        if science_model_is_official(&model) {
+            return science_official_passthrough(&parts, bytes).await;
+        }
+        axum::extract::Request::from_parts(parts, axum::body::Body::from(bytes))
+    } else {
+        request
+    };
     handle_messages_for_app(
         state,
         request,
@@ -323,7 +344,9 @@ pub async fn handle_claude_science_models(
     // Aggregation and routing publish the same shape: one entry per upstream
     // model, named after it, with the provider as the description. Science
     // shows both in its picker, unlike Desktop's tier slots.
-    let models = if crate::mode::stack::stack_mode_now(&AppType::ClaudeScience) {
+    let stack = crate::mode::stack::stack_mode_now(&AppType::ClaudeScience);
+    let subscription = stack && science_subscription_in_stack();
+    let models = if stack {
         crate::mode::stack::published_now(&state.db, AppType::ClaudeScience)
             .map_err(|e| ProxyError::DatabaseError(e.to_string()))?
     } else {
@@ -336,9 +359,119 @@ pub async fn handle_claude_science_models(
         crate::claude_desktop_config::science_route_models(provider)
             .map_err(|e| ProxyError::ConfigError(e.to_string()))?
     };
-    Ok(Json(crate::claude_desktop_config::stack_model_list_response(
-        &models,
-    )))
+    let mut response = crate::claude_desktop_config::stack_model_list_response(&models);
+    if subscription {
+        // The subscription's own Claude models first, fetched with Science's
+        // token; if Anthropic is unreachable the providers' models still show.
+        match science_official_models(&headers).await {
+            Ok(official) => {
+                if let Some(data) = response.get_mut("data").and_then(Value::as_array_mut) {
+                    let mut merged = official;
+                    merged.append(data);
+                    *data = merged;
+                }
+            }
+            Err(error) => log::warn!("[claude-science] official model list unavailable: {error}"),
+        }
+    }
+    Ok(Json(response))
+}
+
+const ANTHROPIC_API: &str = "https://api.anthropic.com";
+
+/// Science is aggregating and the user added "Claude Science Official" to it.
+fn science_subscription_in_stack() -> bool {
+    let app = AppType::ClaudeScience;
+    crate::mode::stack::stack_mode_now(&app)
+        && crate::mode::controller::settled_stack(&app).is_ok_and(|stack| {
+            stack.enabled
+                && stack.is_member(crate::database::CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID)
+        })
+}
+
+/// A Claude model id as Anthropic names it: aggregated ids (which also start
+/// with `claude-`) decode to a provider and are not official.
+fn science_model_is_official(model: &str) -> bool {
+    use crate::mode::stack::Decoded;
+    model.starts_with("claude-")
+        && matches!(
+            crate::mode::stack::decode(&AppType::ClaudeScience, model),
+            Decoded::Plain
+        )
+}
+
+/// Headers forwarded to Anthropic as the client sent them. Hop-by-hop and
+/// length headers are left to the HTTP client.
+fn science_forward_headers(headers: &axum::http::HeaderMap) -> reqwest::header::HeaderMap {
+    let mut out = reqwest::header::HeaderMap::new();
+    for (name, value) in headers {
+        let key = name.as_str().to_ascii_lowercase();
+        if matches!(
+            key.as_str(),
+            "host" | "content-length" | "connection" | "transfer-encoding" | "accept-encoding"
+        ) {
+            continue;
+        }
+        if let (Ok(n), Ok(v)) = (
+            reqwest::header::HeaderName::from_bytes(name.as_str().as_bytes()),
+            reqwest::header::HeaderValue::from_bytes(value.as_bytes()),
+        ) {
+            out.append(n, v);
+        }
+    }
+    out
+}
+
+async fn science_official_models(headers: &axum::http::HeaderMap) -> Result<Vec<Value>, String> {
+    let response = crate::proxy::http_client::get()
+        .get(format!("{ANTHROPIC_API}/v1/models?limit=100"))
+        .headers(science_forward_headers(headers))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!("HTTP {}", response.status()));
+    }
+    let body: Value = response.json().await.map_err(|e| e.to_string())?;
+    Ok(body
+        .get("data")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default())
+}
+
+/// Forward Science's own request to Anthropic unchanged and stream the reply
+/// back. Nothing is substituted: the credential is the one Science sent.
+async fn science_official_passthrough(
+    parts: &axum::http::request::Parts,
+    body: Bytes,
+) -> Result<axum::response::Response, ProxyError> {
+    let path = parts
+        .uri
+        .path()
+        .strip_prefix(crate::claude_science::PROXY_PREFIX)
+        .unwrap_or(parts.uri.path());
+    let query = parts.uri.query().map(|q| format!("?{q}")).unwrap_or_default();
+    let upstream = crate::proxy::http_client::get()
+        .post(format!("{ANTHROPIC_API}{path}{query}"))
+        .headers(science_forward_headers(&parts.headers))
+        .body(body)
+        .send()
+        .await
+        .map_err(|e| ProxyError::ForwardFailed(e.to_string()))?;
+    let status = StatusCode::from_u16(upstream.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
+    let mut builder = axum::response::Response::builder().status(status);
+    for (name, value) in upstream.headers() {
+        let key = name.as_str();
+        if matches!(key, "content-length" | "transfer-encoding" | "connection" | "content-encoding") {
+            continue;
+        }
+        builder = builder.header(key, value.as_bytes());
+    }
+    let stream = upstream.bytes_stream().map(|chunk| chunk.map_err(std::io::Error::other));
+    builder
+        .body(axum::body::Body::from_stream(stream))
+        .map_err(|e| ProxyError::ForwardFailed(e.to_string()))
 }
 
 async fn handle_messages_for_app(

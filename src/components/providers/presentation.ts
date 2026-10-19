@@ -526,14 +526,18 @@ function buildSwitchSectionsByView(input: SwitchModeInput): ProviderSection[] {
   const availItems = providers
     .filter((p) => p.id !== defaultId && !memberIds.includes(p.id))
     .map((p) => {
-      if (blockedFromRouting(app, p)) {
+      // Science's official card joins the aggregation: Claude models then
+      // stay on the subscription next to the providers' models.
+      const scienceOfficial =
+        app === "claude-science" && p.id === "claude-science-official";
+      if (!scienceOfficial && blockedFromRouting(app, p)) {
         return blocked(
           p,
           t("providerCard.action.add"),
           t("providerCard.reason.noStack"),
         );
       }
-      if (official(p)) {
+      if (official(p) && !scienceOfficial) {
         return {
           provider: p,
           presentation: {
