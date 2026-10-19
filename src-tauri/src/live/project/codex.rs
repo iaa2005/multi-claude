@@ -19,14 +19,14 @@ use crate::live::floor;
 use crate::live::patch::toml::{same_value, shape_error, TomlDocPatch};
 use crate::live::patch::LiveWriteError;
 
-/// CC Switch 写入的路由表 id。
+/// MultiClaude 写入的路由表 id。
 pub const ROUTE_ID: &str = "custom";
 /// 旧版代理官方路由写的表 id。会话按选中的 id 分桶，它让代理下的官方会话自成一桶，
 /// 表一删就 resume 不了，新版不再写；live 里留着的只清理。
 pub const OFFICIAL_PROXY_ROUTE_ID: &str = "cc-switch-official";
 /// 把内置 openai 改道到别的地址的顶层键。
 const OPENAI_BASE_URL: &str = "openai_base_url";
-/// CC Switch 生成的模型目录文件名。
+/// MultiClaude 生成的模型目录文件名。
 pub const CATALOG_FILENAME: &str = "cc-switch-model-catalog.json";
 pub use super::claude::PROXY_TOKEN_PLACEHOLDER;
 /// `web_search` 的禁用值。
@@ -67,7 +67,7 @@ fn is_built_in_id(id: &str) -> bool {
 pub enum RouteAuth {
     /// 表里声明了 `env_key`。
     EnvKey,
-    /// CC Switch 把 Key 写成表的 `experimental_bearer_token`。
+    /// MultiClaude 把 Key 写成表的 `experimental_bearer_token`。
     Bearer,
     /// 表自己带鉴权（`auth` 命令、`aws`、`Authorization` 头、查询参数），不注入 Key。
     Headers,
@@ -155,7 +155,7 @@ impl CodexProjection {
                 Some(((*key).to_string(), undecorated(value)))
             })
             .collect();
-        // 行里自己指定的模型目录（用户管理的文件）照写；指向 CC Switch 自己目录的不算，
+        // 行里自己指定的模型目录（用户管理的文件）照写；指向 MultiClaude 自己目录的不算，
         // 那个指针由写入方按有没有生成目录决定。
         if let Some(pointer) = foreign_catalog(&doc) {
             top.push((MODEL_CATALOG_JSON.to_string(), undecorated(pointer.clone())));
@@ -517,7 +517,7 @@ pub fn proxy_route_table(name: &str, base_url: &str, requires_openai_auth: bool)
     table
 }
 
-/// 一张能证明是 CC Switch 写进去的 provider 表：id 和地址都对得上某个供应商行的投影。
+/// 一张能证明是 MultiClaude 写进去的 provider 表：id 和地址都对得上某个供应商行的投影。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KnownTable {
     pub id: String,
@@ -535,9 +535,9 @@ pub struct CodexConfigPatch {
     /// 上一家带进来的独有字段：live 里的值还相同才删。
     pub outgoing: Vec<(String, TomlValue)>,
     pub route: RouteWrite,
-    /// 生成了模型目录：行里没有自己的指针时，`model_catalog_json` 写成 CC Switch 的目录。
+    /// 生成了模型目录：行里没有自己的指针时，`model_catalog_json` 写成 MultiClaude 的目录。
     pub catalog: bool,
-    /// 旧版按别的 id 写进去的表，能证明是 CC Switch 写的就删掉（里面可能有真实 Key）。
+    /// 旧版按别的 id 写进去的表，能证明是 MultiClaude 写的就删掉（里面可能有真实 Key）。
     pub retired: Vec<KnownTable>,
 }
 
@@ -575,7 +575,7 @@ pub fn without_row_catalog(config_text: &str) -> Option<String> {
     Some(doc.to_string())
 }
 
-/// 顶层指向别的目录（不是 CC Switch 生成的那个）的 `model_catalog_json`。
+/// 顶层指向别的目录（不是 MultiClaude 生成的那个）的 `model_catalog_json`。
 pub fn foreign_catalog(doc: &DocumentMut) -> Option<&TomlValue> {
     doc.get(MODEL_CATALOG_JSON)
         .and_then(Item::as_value)
@@ -586,7 +586,7 @@ pub fn foreign_catalog(doc: &DocumentMut) -> Option<&TomlValue> {
         })
 }
 
-/// live 的 `model_catalog_json` 指向 CC Switch 生成的目录：新启动的 Codex 读的是它。
+/// live 的 `model_catalog_json` 指向 MultiClaude 生成的目录：新启动的 Codex 读的是它。
 pub fn live_catalog_is_ours(config_text: &str) -> bool {
     config_text.parse::<DocumentMut>().ok().is_some_and(|doc| {
         doc.get(MODEL_CATALOG_JSON)
@@ -595,7 +595,7 @@ pub fn live_catalog_is_ours(config_text: &str) -> bool {
     })
 }
 
-/// 行里自己指定的模型目录指针（投影的 `top` 只收不是 CC Switch 的指针）。它和别的关键
+/// 行里自己指定的模型目录指针（投影的 `top` 只收不是 MultiClaude 的指针）。它和别的关键
 /// 字段一样只属于这一家：切到别家时第 1 步清掉。
 pub fn row_catalog_pointer(top: &[(String, TomlValue)]) -> Option<&(String, TomlValue)> {
     top.iter().find(|(key, _)| key == MODEL_CATALOG_JSON)
@@ -619,7 +619,7 @@ impl CodexConfigPatch {
         let root = doc.as_table_mut();
 
         // 1. 清空顶层关键字段。目标里也有的（含选路要写的）留给后面原位改值。模型目录指针
-        //    同样不论原来指向哪里：要写 CC Switch 的目录时留给第 5 步原位改值，否则删掉。
+        //    同样不论原来指向哪里：要写 MultiClaude 的目录时留给第 5 步原位改值，否则删掉。
         let doomed: Vec<String> = root
             .iter()
             .map(|(key, _)| key.to_string())
@@ -732,7 +732,7 @@ impl CodexConfigPatch {
             .as_table_like_mut()
             .ok_or_else(|| shape_error(path, &["model_providers".to_string()]))?;
 
-        // 旧版留下的保留 id 表会让 Codex 整份拒绝加载：能证明是 CC Switch 写的删掉，
+        // 旧版留下的保留 id 表会让 Codex 整份拒绝加载：能证明是 MultiClaude 写的删掉，
         // 其余按原样改名成 cc-switch-N（不知道用户在乎其中哪些键）。
         for id in RESERVED_TABLE_IDS {
             let Some(item) = providers.get(id) else {
@@ -774,7 +774,7 @@ impl CodexConfigPatch {
                 }
             }
             RouteWrite::Default | RouteWrite::BuiltIn { table: None, .. } => {
-                // custom 表是 CC Switch 的，没人选它了也留着（改成不带真实 Key 的休眠形态
+                // custom 表是 MultiClaude 的，没人选它了也留着（改成不带真实 Key 的休眠形态
                 // 由切回官方负责）：这里保持原样，只保证不留真实 Key。
                 if let Some(item) = providers.get_mut(ROUTE_ID) {
                     if let Some(table) = item.as_table_like_mut() {

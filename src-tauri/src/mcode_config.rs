@@ -493,7 +493,7 @@ mod tests {
         let mut refreshed = ProviderService::list(&state, AppType::Mcode).unwrap();
         let mut edited = refreshed.swap_remove(&provider.id).unwrap();
         assert_eq!(edited.name, "Renamed in MCode");
-        edited.notes = Some("Edited in CC Switch".into());
+        edited.notes = Some("Edited in MultiClaude".into());
         ProviderService::update(&state, AppType::Mcode, None, edited).unwrap();
         assert_eq!(
             get_providers().unwrap()[&provider.id]["name"],
@@ -609,7 +609,7 @@ mod capability_tests {
             .unwrap()
             .join("cc-switch-validation");
         fs::create_dir_all(&skill_dir).unwrap();
-        fs::write(skill_dir.join("SKILL.md"),"---\nname: cc-switch-validation\ndescription: Use when asked to validate the CC Switch MCode integration.\n---\nCall the cc-switch-validation MCP tool validation_proof. Write its exact result into mcp-proof.txt. Write SKILL-INSTRUCTION-OK into skill-proof.txt. Fix the project bug and run its test.\n").unwrap();
+        fs::write(skill_dir.join("SKILL.md"),"---\nname: cc-switch-validation\ndescription: Use when asked to validate the MultiClaude MCode integration.\n---\nCall the cc-switch-validation MCP tool validation_proof. Write its exact result into mcp-proof.txt. Write SKILL-INSTRUCTION-OK into skill-proof.txt. Fix the project bug and run its test.\n").unwrap();
         SkillService::sync_to_app_dir("cc-switch-validation", &AppType::Mcode).unwrap();
         assert!(data_dir()
             .join("skills/cc-switch-validation/SKILL.md")

@@ -1,4 +1,4 @@
-//! Claude Science as a client of the CC Switch gateway.
+//! Claude Science as a client of the MultiClaude gateway.
 //!
 //! Science has no provider file to write. Its daemon reads
 //! `ANTHROPIC_BASE_URL`, `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` from
@@ -7,7 +7,7 @@
 //! plain `http` only for literal loopback hosts — 127.0.0.1 / [::1]). That
 //! makes it a natural client of the local gateway: point it at
 //! `http://127.0.0.1:15723/claude-science`, hand it the gateway token, and
-//! provider switching, failover and usage all happen in CC Switch as they do
+//! provider switching, failover and usage all happen in MultiClaude as they do
 //! for Claude Desktop.
 //!
 //! The process is the other half. Science runs a daemon on its data dir and
@@ -50,7 +50,7 @@ pub struct ScienceGateway {
 }
 
 impl ScienceGateway {
-    /// The gateway route CC Switch serves for this app.
+    /// The gateway route MultiClaude serves for this app.
     pub fn via_gateway(proxy_base_url: &str, token: &str) -> Result<Self, AppError> {
         let base = normalise_base_url(proxy_base_url)?;
         Ok(Self {
@@ -341,7 +341,7 @@ fn restart(gateway: Option<&ScienceGateway>, profile: &str) -> Result<(), AppErr
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        // The parent (CC Switch) must not leak its own Anthropic settings
+        // The parent (MultiClaude) must not leak its own Anthropic settings
         // into a process that is supposed to be back on claude.ai.
         .env_remove("ANTHROPIC_BASE_URL")
         .env_remove("ANTHROPIC_API_KEY")

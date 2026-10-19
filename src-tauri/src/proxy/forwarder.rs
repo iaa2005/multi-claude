@@ -69,7 +69,7 @@ fn is_opencode_upstream(upstream_host: Option<&str>) -> bool {
 ///
 /// The gateway uses the session id for upstream routing and prompt caching, so
 /// it must not change between the turns of a conversation. Claude Desktop hands
-/// CC Switch a fresh id on every request, which defeats that; hashing the
+/// MultiClaude a fresh id on every request, which defeats that; hashing the
 /// conversation prefix keeps the id stable while still separating conversations.
 fn conversation_fingerprint(body: &Value) -> Option<String> {
     let mut hasher = Sha256::new();
@@ -1957,8 +1957,8 @@ impl RequestForwarder {
 
         // Codex 远程压缩，以及同一线程里别家回合留下的状态（见 `codex_compaction`）。
         // Chat / Anthropic 转换在转换器里处理；这里管原样转发的两种上游：官方清掉
-        // CC Switch 产出、官方一定会拒的条目，原生 Responses 第三方把压缩触发和
-        // CC Switch 包装的压缩摘要改成普通消息。看不出来源的密文原样发出，被拒后由
+        // MultiClaude 产出、官方一定会拒的条目，原生 Responses 第三方把压缩触发和
+        // MultiClaude 包装的压缩摘要改成普通消息。看不出来源的密文原样发出，被拒后由
         // `opaque_state_rectifier` 处理。请求里没有这些条目时逐字节不变。
         if matches!(app_type, AppType::Codex)
             && !codex_responses_to_chat
@@ -7090,7 +7090,7 @@ mod tests {
         }
 
         /// 原生 Responses 第三方收不了 Codex 私有的压缩触发：改成禁止新工具调用的摘要回合
-        /// （工具定义保留，历史里的调用条目还引用着它们），CC Switch 包装的压缩摘要改成
+        /// （工具定义保留，历史里的调用条目还引用着它们），MultiClaude 包装的压缩摘要改成
         /// 普通消息；看不出来源的压缩密文原样发出。
         #[tokio::test]
         async fn native_third_party_compaction_becomes_summary_turn() {

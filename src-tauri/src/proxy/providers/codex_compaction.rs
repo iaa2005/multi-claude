@@ -12,7 +12,7 @@
 //! `encrypted_content`。以后 Codex 在历史里回放这个条目时：
 //! - 发往 Chat / Anthropic 转换：解回摘要正文，作为用户消息；解不开的（别家的密文）
 //!   转换后的格式装不下，换成一句说明，不再静默丢弃。
-//! - 发往原生 Responses（官方和第三方）：CC Switch 包装的摘要转成用户消息；别的密文看不出
+//! - 发往原生 Responses（官方和第三方）：MultiClaude 包装的摘要转成用户消息；别的密文看不出
 //!   来源（可能正是这家自己签发的），原样发出，上游明确拒绝后再由 `opaque_state_rectifier`
 //!   换掉。
 
@@ -24,7 +24,7 @@ use serde_json::{json, Value};
 
 pub(crate) const CCSWITCH_COMPACTION_PREFIX: &str = "ccswitch-compaction-v1:";
 
-/// CC Switch 自己包装进 `encrypted_content` 的内容都以它开头，官方后端一律解不开。
+/// MultiClaude 自己包装进 `encrypted_content` 的内容都以它开头，官方后端一律解不开。
 const CCSWITCH_ENVELOPE_PREFIX: &str = "ccswitch-";
 
 /// 与 codex-rs `prompts/templates/compact/prompt.md` 一致（Codex 本地压缩用的提示词）。
@@ -73,7 +73,7 @@ pub(crate) fn encode_compaction_summary(summary: &str) -> String {
     )
 }
 
-/// 解开 CC Switch 包装的摘要；别家密文或损坏的内容返回 None。
+/// 解开 MultiClaude 包装的摘要；别家密文或损坏的内容返回 None。
 pub(crate) fn decode_compaction_summary(encrypted_content: &str) -> Option<String> {
     let encoded = encrypted_content.strip_prefix(CCSWITCH_COMPACTION_PREFIX)?;
     let bytes = URL_SAFE_NO_PAD.decode(encoded).ok()?;
@@ -90,7 +90,7 @@ fn compaction_encrypted_content(item: &Value) -> Option<&str> {
         .filter(|value| !value.is_empty())
 }
 
-/// CC Switch 自己包装的压缩条目，解回摘要正文；别的条目返回 None。
+/// MultiClaude 自己包装的压缩条目，解回摘要正文；别的条目返回 None。
 fn own_compaction_summary(item: &Value) -> Option<String> {
     if !is_compaction_item(item) {
         return None;
@@ -186,7 +186,7 @@ pub(crate) fn compaction_incomplete_reason(finish_reason: Option<&str>) -> Optio
 
 /// 原生 Responses 格式的第三方上游：压缩触发是 Codex 私有协议，普通 Responses 网关收到
 /// 只会回一条普通消息（Codex 照样 Fatal），这里改成和 Chat / Anthropic 转换一样的摘要回合；
-/// CC Switch 包装的压缩摘要谁都解不开，转成用户消息。
+/// MultiClaude 包装的压缩摘要谁都解不开，转成用户消息。
 ///
 /// 别的压缩条目看不出来源，可能正是这家自己签发、能正常解开的，原样发出；上游明确拒绝后
 /// 由 `opaque_state_rectifier` 换成文字重试。请求里没有前两类条目时一个字节都不动。
@@ -280,8 +280,8 @@ pub(crate) fn strip_mismatched_item_id(item: &mut Value, item_type: &str) -> boo
 }
 
 /// 发往官方（ChatGPT 登录直通）前，清理同一线程里第三方回合留下、官方一定会拒的东西：
-/// - CC Switch 包装的压缩摘要：转成用户消息（官方验不了这段"密文"）；
-/// - 推理条目带着 CC Switch 包装的内容（Anthropic thinking 签名），或根本没有
+/// - MultiClaude 包装的压缩摘要：转成用户消息（官方验不了这段"密文"）；
+/// - 推理条目带着 MultiClaude 包装的内容（Anthropic thinking 签名），或根本没有
 ///   encrypted_content（Chat 转换产出的）：`store:false` 下官方只能靠密文还原推理，
 ///   这类条目要么验签失败、要么按 id 查无此条目（404），整条去掉；
 /// - id 前缀和条目类型对不上（转换器产出的 `resp_…_msg` 等）：去掉 id。

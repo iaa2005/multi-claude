@@ -60,7 +60,7 @@ pub trait LivePatch {
     }
 }
 
-/// CC Switch 整份拥有的文件（Codex 的模型目录、托管账号的登录标记，以及切换时整份
+/// MultiClaude 整份拥有的文件（Codex 的模型目录、托管账号的登录标记，以及切换时整份
 /// 写入或删除的 `auth.json`）：不以现有内容为底，直接给出写后的内容。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WholeFile {

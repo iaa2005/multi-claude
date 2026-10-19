@@ -1,13 +1,13 @@
 //! Grok Build 供应商编辑器：底部的 config.toml 就是「切到这个供应商之后 config.toml 的样子」。
 //!
 //! - 显示：在内存里对当前 live 做一次切换投影（和切换用同一个补丁）：`models.default` 和
-//!   CC Switch 写的模型表换成这个供应商的，其余部分是 live 原样。
+//!   MultiClaude 写的模型表换成这个供应商的，其余部分是 live 原样。
 //! - 保存：`models.default` 和模型表写回这个供应商的行（行里其余内容原样保留）；其余改动
 //!   是 Grok Build 的全局设置，经引擎写进 live，只改用户动过的键。编辑的是直连模式下的
 //!   当前供应商时，模型表在同一次写入里也换进 live。
 //! - 三方比较：同 Codex 编辑器（`editor_toml`）。
 //!
-//! 改动的粒度：顶层的值；顶层表里的每个键；`[model.*]` 里 CC Switch 的表以外的每张表。
+//! 改动的粒度：顶层的值；顶层表里的每个键；`[model.*]` 里 MultiClaude 的表以外的每张表。
 
 use serde_json::{Map, Value};
 use toml_edit::DocumentMut;
@@ -35,7 +35,7 @@ fn parse_text(text: &str, what: &str) -> Result<DocumentMut, AppError> {
     )
 }
 
-/// 全局设置的每个位置：`models.default` 和 `cc_tables`（CC Switch 写的模型表）不算。
+/// 全局设置的每个位置：`models.default` 和 `cc_tables`（MultiClaude 写的模型表）不算。
 fn entries(doc: &DocumentMut, cc_tables: &[&str]) -> Vec<Entry> {
     let mut entries = Vec::new();
     for (key, item) in doc.as_table().iter() {
@@ -105,7 +105,7 @@ pub fn view(
     })
 }
 
-/// 行里 CC Switch 的表名（按投影的规则解析；解析不了按 `models.default`）。
+/// 行里 MultiClaude 的表名（按投影的规则解析；解析不了按 `models.default`）。
 fn row_table_name(settings: &Value) -> Option<String> {
     if let Ok(projection) = GrokProjection::of(settings, false) {
         return projection.table_name().map(str::to_string);
@@ -176,7 +176,7 @@ pub(crate) fn plan_save(
     })
 }
 
-/// 把编辑器里的 `models.default` 和模型表存回行：行里原来 CC Switch 的表换成编辑器的，
+/// 把编辑器里的 `models.default` 和模型表存回行：行里原来 MultiClaude 的表换成编辑器的，
 /// 其余内容原样保留（降级后旧版会整份使用这些行）。
 fn store_into_row(
     stored_row: Option<&Value>,
@@ -300,7 +300,7 @@ model = "m"
             ConflictPolicy::Refuse,
         )
         .unwrap();
-        // 显示里原来的 grok-4.5 和新的 grok-4.6 都是 CC Switch 的表，不算全局改动。
+        // 显示里原来的 grok-4.5 和新的 grok-4.6 都是 MultiClaude 的表，不算全局改动。
         assert!(plan.edits.is_empty(), "{:?}", plan.edits.paths());
         let row: toml::Table =
             toml::from_str(plan.row_settings["config"].as_str().unwrap()).unwrap();

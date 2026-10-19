@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "CC Switch",
+    "title": "MultiClaude",
     "description": "Claude Code, Codex ve Gemini CLI için Hepsi Bir Arada Asistan"
   },
   "common": {
@@ -53,9 +53,9 @@
     "required": "gerekli"
   },
   "firstRunNotice": {
-    "title": "CC Switch’e hoş geldiniz",
-    "bodyDefault": "CC Switch, tek bir tıklamayla birden fazla Claude Code / Codex / Gemini CLI sağlayıcısı arasında geçiş yapmanızı sağlar. Bu araçları zaten yapılandırdıysanız, CC Switch mevcut kurulumunuzu \"varsayılan\" adlı bir sağlayıcı olarak kaydetmiştir, böylece önceki yapılandırmalarınızın hiçbiri kaybolmaz.",
-    "bodyOfficial": "Listede “Resmî” ön ayarı da bulunur; resmî varsayılan ayarlara dönmek istediğinizde buna tıklayın. CC Switch, geçiş yapmadan önce mevcut yapılandırmanızı “default” olarak yedekler; böylece iki yapılandırma arasında rahatça geçiş yapabilirsiniz. CC Switch böyle çalışır 😊",
+    "title": "MultiClaude’e hoş geldiniz",
+    "bodyDefault": "MultiClaude, tek bir tıklamayla birden fazla Claude Code / Codex / Gemini CLI sağlayıcısı arasında geçiş yapmanızı sağlar. Bu araçları zaten yapılandırdıysanız, MultiClaude mevcut kurulumunuzu \"varsayılan\" adlı bir sağlayıcı olarak kaydetmiştir, böylece önceki yapılandırmalarınızın hiçbiri kaybolmaz.",
+    "bodyOfficial": "Listede “Resmî” ön ayarı da bulunur; resmî varsayılan ayarlara dönmek istediğinizde buna tıklayın. MultiClaude, geçiş yapmadan önce mevcut yapılandırmanızı “default” olarak yedekler; böylece iki yapılandırma arasında rahatça geçiş yapabilirsiniz. MultiClaude böyle çalışır 😊",
     "confirm": "Anladım"
   },
   "apiKeyInput": {
@@ -119,8 +119,8 @@
     "stackBadgeNoModels": "Bu sağlayıcının yapılandırılmış modeli yok, dolayısıyla model seçicide hiçbir şey görünmüyor",
     "stackSaved": "Kaydedildi. Uygulamak için {{client}}'yi yeniden başlatın",
     "stackSavedLive": "Kaydedildi. {{client}}'de hemen yürürlüğe girer",
-    "stackReselectHint": "CC Switch istemci yapılandırmasını yeniden yazdığında, model seçicide toplanan modeli tekrar seçin",
-    "stackPartial": "Kısmen yazılı; bir sonraki değişiklikte veya CC Switch yeniden başlatıldığında tamamlanacak",
+    "stackReselectHint": "MultiClaude istemci yapılandırmasını yeniden yazdığında, model seçicide toplanan modeli tekrar seçin",
+    "stackPartial": "Kısmen yazılı; bir sonraki değişiklikte veya MultiClaude yeniden başlatıldığında tamamlanacak",
     "stackFailed": "Birleştirilmiş modeller kaydedilemedi: {{error}}",
     "stackDefaultCannotRemove": "Varsayılan sağlayıcı kaldırılamaz; önce başka bir sağlayıcıyı varsayılan olarak ayarlayın",
     "stackDefaultHint": "Bu varsayılan sağlayıcıdır: listesindeki ilk model Claude Code'nin başlangıç ​​ve arka plan görevlerini yönetir",
@@ -139,9 +139,9 @@
       "nothingUsable": "Codex yerleşik liste: kullanılabilir modeli yoktur. Codex uygulamasını en son sürüme güncelleyin"
     },
     "routeOwnsCatalog": "Toplanan modeller Codex'de görünmüyor: yönlendirilen sağlayıcı kendi model katalog dosyasını (model_catalog_json) kullanıyor",
-    "adoptCatalog": "CC Switch’in model kataloğunu kullanın",
-    "adoptCatalogDone": "Artık CC Switch’in model kataloğunu kullanıyoruz. Uygulamak için Codex uygulamasını yeniden başlatın",
-    "adoptCatalogFailed": "CC Switch’in model kataloğuna geçilemedi: {{error}}",
+    "adoptCatalog": "MultiClaude’in model kataloğunu kullanın",
+    "adoptCatalogDone": "Artık MultiClaude’in model kataloğunu kullanıyoruz. Uygulamak için Codex uygulamasını yeniden başlatın",
+    "adoptCatalogFailed": "MultiClaude’in model kataloğuna geçilemedi: {{error}}",
     "noRoutingSupport": "Yönlendirme Desteği Yok",
     "blockedByProxyHint": "Yönlendirme modunda resmi bir sağlayıcıya geçilemiyor",
     "editProvider": "Sağlayıcıyı Düzenle",
@@ -289,7 +289,7 @@
     "geminiRestartRequired": "Başarıyla değiştirildi. Değişiklikleri uygulamak için Gemini CLI'yi yeniden başlatın.",
     "grokBuildRestartRequired": "Başarıyla değiştirildi. Değişiklikleri uygulamak için Grok Build'yi yeniden başlatın.",
     "claudeDesktopRestartRequired": "Başarıyla değiştirildi. Değişiklikleri uygulamak için Claude Desktop'yi yeniden başlatın.",
-    "claudeDesktopProxyRestartRequired": "Başarıyla değiştirildi. CC Switch'yi çalışır durumda tutun ve değişiklikleri uygulamak için Claude Desktop'yi yeniden başlatın.",
+    "claudeDesktopProxyRestartRequired": "Başarıyla değiştirildi. MultiClaude'yi çalışır durumda tutun ve değişiklikleri uygulamak için Claude Desktop'yi yeniden başlatın.",
     "addToConfigSuccess": "Yapılandırmaya eklendi",
     "removeFromConfigSuccess": "Yapılandırmadan kaldırıldı",
     "removeFromConfigFailed": "Sağlayıcı kaldırılamadı",
@@ -336,7 +336,7 @@
     "deleteProvider": "Sağlayıcıyı Sil",
     "deleteProviderMessage": "\"{{name}}\" sağlayıcısını silmek istediğinizden emin misiniz? Bu eylem geri alınamaz.",
     "removeProvider": "Sağlayıcıyı Kaldır",
-    "removeProviderMessage": "\"{{name}}\" sağlayıcısını yapılandırmadan kaldırmak istediğinizden emin misiniz?\n\nKaldırma işleminden sonra bu sağlayıcı artık etkin olmayacak ancak yapılandırma verileri CC Switch’te saklanacak. İstediğiniz zaman yeniden ekleyebilirsiniz.",
+    "removeProviderMessage": "\"{{name}}\" sağlayıcısını yapılandırmadan kaldırmak istediğinizden emin misiniz?\n\nKaldırma işleminden sonra bu sağlayıcı artık etkin olmayacak ancak yapılandırma verileri MultiClaude’te saklanacak. İstediğiniz zaman yeniden ekleyebilirsiniz.",
     "piDefaultProviderWarning": "Pi'nin genel varsayılanı şu anda bu sağlayıcıyı işaret ediyor. Devam ederseniz Pi mevcut başka bir modeli deneyecektir; Bir sağlayıcıyı seçmek için /model'i veya başka bir sağlayıcıda oturum açmak için /login'i kullanın.",
     "proxy": {
       "title": "Yerel Yönlendirmeyi Etkinleştir",
@@ -384,9 +384,9 @@
       "goToApps": "Uygulamaları Aç",
       "updates": "Uygulamalarınızın yeni sürümleri",
       "checkToolUpdates": "Lansman sırasında uygulamalarınızın yeni sürümlerini kontrol edin",
-      "checkToolUpdatesHelp": "CC Switch açıkken, her başlatıldığında yüklü komut satırı uygulamalarınızı yeni sürümler için kontrol eder ve bulursa kenar çubuğunda Uygulamalar üzerinde bir nokta gösterir. Hiçbir şey otomatik olarak yükseltilmez.",
+      "checkToolUpdatesHelp": "MultiClaude açıkken, her başlatıldığında yüklü komut satırı uygulamalarınızı yeni sürümler için kontrol eder ve bulursa kenar çubuğunda Uygulamalar üzerinde bir nokta gösterir. Hiçbir şey otomatik olarak yükseltilmez.",
       "windowAndTerminal": "Pencere ve terminal",
-      "minimizeToTrayHelp": "Açık olduğunda, kapat düğmesi yalnızca pencereyi gizler ve CC Switch sistem tepsisinde çalışmaya devam eder (hafif mod tepsi menüsündedir). Kapatıldığında kapatma düğmesi kapanır.",
+      "minimizeToTrayHelp": "Açık olduğunda, kapat düğmesi yalnızca pencereyi gizler ve MultiClaude sistem tepsisinde çalışmaya devam eder (hafif mod tepsi menüsündedir). Kapatıldığında kapatma düğmesi kapanır.",
       "terminalHelp": "Sağlayıcı kartlarındaki “Açık terminal”in kullandığı terminal. Mevcut değilse sistemin varsayılan terminali kullanılır."
     },
     "tabGeneral": "Genel",
@@ -427,7 +427,7 @@
       },
       "globalProxy": {
         "title": "Genel çıkış proxy’si",
-        "description": "CC Switch’in harici API'lere erişmesi için proxy'yi yapılandırın"
+        "description": "MultiClaude’in harici API'lere erişmesi için proxy'yi yapılandırın"
       },
       "data": {
         "title": "Veri Yönetimi",
@@ -500,7 +500,7 @@
     "themeDark": "Ayın Karanlık Yüzü",
     "themeSystem": "Sistem",
     "importExport": "SQL İçe/Dışa Aktarma",
-    "importExportHint": "Geçiş veya geri yükleme için veritabanı SQL yedeklerini içe veya dışa aktarın (içe aktarma yalnızca CC Switch tarafından dışa aktarılan yedeklemeleri destekler).",
+    "importExportHint": "Geçiş veya geri yükleme için veritabanı SQL yedeklerini içe veya dışa aktarın (içe aktarma yalnızca MultiClaude tarafından dışa aktarılan yedeklemeleri destekler).",
     "exportConfig": "SQL Yedeklemesini Dışa Aktar",
     "selectConfigFile": "SQL Dosyasını Seçin",
     "noFileSelected": "Hiçbir yapılandırma dosyası seçilmedi.",
@@ -577,15 +577,15 @@
         },
         "codexHistoryUnifyRestore": {
           "name": "Codex oturumu geri yükleme yedeklemelerini birleştirir",
-          "hint": "\"Yedeklemeyi geri yükle\" çalıştırılmadan önce tutulan oturum kopyaları. CC Switch bunları bir daha asla okumaz."
+          "hint": "\"Yedeklemeyi geri yükle\" çalıştırılmadan önce tutulan oturum kopyaları. MultiClaude bunları bir daha asla okumaz."
         },
         "codexHistoryProviderMigration": {
           "name": "Codex oturum grubu geçiş yedeklemeleri",
-          "hint": "Oturum grupları taşınmadan önce saklanan kopyalar. CC Switch bunları bir daha okumaz."
+          "hint": "Oturum grupları taşınmadan önce saklanan kopyalar. MultiClaude bunları bir daha okumaz."
         },
         "liveFirstWrite": {
           "name": "İlk yazma yedeklemelerini yapılandırma",
-          "hint": "CC Switch’in bunları ilk kez yeniden yazmasından önceki orijinal istemci yapılandırma dosyaları. Silme işleminden sonra bu orijinaller kaybolur; bir sonraki yazma işleminde dosyayı o zamanki haliyle yedekler."
+          "hint": "MultiClaude’in bunları ilk kez yeniden yazmasından önceki orijinal istemci yapılandırma dosyaları. Silme işleminden sonra bu orijinaller kaybolur; bir sonraki yazma işleminde dosyayı o zamanki haliyle yedekler."
         },
         "hermes": {
           "name": "Hermes yapılandırma yedeklemeleri",
@@ -597,7 +597,7 @@
         },
         "proxyLiveBackup": {
           "name": "Eski yönlendirme devralma yedeklemeleri",
-          "hint": "Yapılandırma kopyaları, yükseltme sırasında eski yönlendirme devralma yedeklerinden taşındı. CC Switch bunları bir daha asla okumaz."
+          "hint": "Yapılandırma kopyaları, yükseltme sırasında eski yönlendirme devralma yedeklerinden taşındı. MultiClaude bunları bir daha asla okumaz."
         },
         "envVars": {
           "name": "Ortam değişkeni temizleme yedeklemeleri",
@@ -810,10 +810,11 @@
     "languageOptionEnglish": "English",
     "languageOptionJapanese": "日本語",
     "languageOptionTurkish": "Türkçe (topluluk çevirisi)",
+    "languageOptionRussian": "Русский (Rusça)",
     "windowBehavior": "Pencere Davranışı",
     "windowBehaviorHint": "Pencere simge durumuna küçültme ve Claude eklenti entegrasyon ilkelerini yapılandırın.",
     "launchOnStartup": "Başlangıçta Başlat",
-    "launchOnStartupDescription": "Sistem başlatıldığında CC Switch'yi otomatik olarak çalıştır",
+    "launchOnStartupDescription": "Sistem başlatıldığında MultiClaude'yi otomatik olarak çalıştır",
     "silentStartup": "Sessiz Başlangıç",
     "silentStartupDescription": "Ana pencereyi göstermeden arka plan modunda başlat",
     "autoLaunchFailed": "Otomatik başlatma ayarlanamadı",
@@ -834,7 +835,7 @@
     "codexStackClassicSubagentsDescription": "Codex birleştirme modunda, modeli ana ajandan farklı bir sağlayıcıdan gelen bir alt ajan, görevini okuyamayabilir: daha yeni Codex alt ajan araçları, ana ajannın sağlayıcısının görevi şifrelemesini sağlar ve başka hiçbir sağlayıcı bunun şifresini çözemez. Etkinleştirildiğinde, toplanan her model, görevi düz metin olarak ileten klasik Codex alt ajan araçlarını kullanır; takas, followup_task ve interrupt_agent gibi daha yeni özelliklerin kaybedilmesidir. Yalnızca birleştirme modunu etkiler; Değişikliğin etkili olması için Codex uygulamasını yeniden başlatın.",
     "codexStackClassicSubagentsForcedV2": "Codex config.toml, bu ayara göre öncelikli olan [features] multi_agent_v2'yi açar, dolayısıyla hiçbir etkisi olmaz.",
     "codexSessionCompression": "Eski Codex oturumlarını sıkıştır",
-    "codexSessionCompressionDescription": "Codex açıkken, her başlatıldığında arka planda 7 gün boyunca değişmeyen oturum dosyalarını sıkıştırır ve bu da çok fazla disk alanı tasarrufu sağlar. Codex, devam ettiğinizde oturumun sıkıştırmasını otomatik olarak açar. CC Switch hala sıkıştırılmış oturumları listeliyor ve sayıyor; liste yalnızca son yanıtlarının önizlemesini göstermiyor. Bu, halen geliştirilmekte olan bir Codex özelliğidir: Codex, açıkken her başlangıçta bir bildirim gösterir. Yeni bir Codex sürümü gerektirir ve Codex yeniden başlatıldıktan sonra etkili olur. Kapatıldığında sıkıştırma durdurulur; zaten sıkıştırılmış olan oturumlar olduğu gibi kalır.",
+    "codexSessionCompressionDescription": "Codex açıkken, her başlatıldığında arka planda 7 gün boyunca değişmeyen oturum dosyalarını sıkıştırır ve bu da çok fazla disk alanı tasarrufu sağlar. Codex, devam ettiğinizde oturumun sıkıştırmasını otomatik olarak açar. MultiClaude hala sıkıştırılmış oturumları listeliyor ve sayıyor; liste yalnızca son yanıtlarının önizlemesini göstermiyor. Bu, halen geliştirilmekte olan bir Codex özelliğidir: Codex, açıkken her başlangıçta bir bildirim gösterir. Yeni bir Codex sürümü gerektirir ve Codex yeniden başlatıldıktan sonra etkili olur. Kapatıldığında sıkıştırma durdurulur; zaten sıkıştırılmış olan oturumlar olduğu gibi kalır.",
     "codexSessionCompressionUsage": "Oturumlar şu anda {{size}} kullanıyor",
     "codexSessionCompressionFailed": "Codex oturum sıkıştırma ayarı değiştirilemedi",
     "unifyCodexHistoryRestoreCompleted": "Yedeklemeden geri yüklenen resmi oturum geçmişi ({{files}} oturum dosyaları, {{rows}} dizin satırları)",
@@ -886,8 +887,8 @@
     },
     "configDirectoryOverride": "Yapılandırma Dizinini Geçersiz Kılma (Gelişmiş)",
     "configDirectoryDescription": "WSL gibi ortamlarda Claude Code veya Codex kullanırken, sağlayıcı verilerini ana ortamla tutarlı tutmak için yapılandırma dizinini WSL'deki dizine manuel olarak belirtebilirsiniz.",
-    "appConfigDir": "CC Switch Yapılandırma Dizini",
-    "appConfigDirDescription": "CC Switch yapılandırması için depolama konumunu özelleştirin (yapılandırma eşitlemeunu etkinleştirmek için bulut eşitleme klasörünü işaretleyin)",
+    "appConfigDir": "MultiClaude Yapılandırma Dizini",
+    "appConfigDirDescription": "MultiClaude yapılandırması için depolama konumunu özelleştirin (yapılandırma eşitlemeunu etkinleştirmek için bulut eşitleme klasörünü işaretleyin)",
     "browsePlaceholderApp": "örneğin, C:\\Users\\Administrator\\.multiclaude",
     "claudeConfigDir": "Claude Code Yapılandırma Dizini",
     "claudeConfigDirDescription": "Claude yapılandırma dizinini (settings.json) geçersiz kılın. Özel dizinler .claude.json'u (MCP) dizinin içinde saklar; varsayılan ~/.claude dizini Claude Code'nin bölünmüş ~/.claude.json yolunu korur.",
@@ -932,7 +933,7 @@
     "viewCurrentReleaseNotes": "Mevcut sürüm sürüm notlarını görüntüle",
     "officialWebsite": "Resmi Web Sitesi",
     "github": "GitHub",
-    "starPrompt": "CC Switch size yardımcı olduysa lütfen GitHub’da bize yıldız verin — bu bizim için çok şey ifade ediyor",
+    "starPrompt": "MultiClaude size yardımcı olduysa lütfen GitHub’da bize yıldız verin — bu bizim için çok şey ifade ediyor",
     "starOnGithub": "GitHub’da yıldız",
     "manualInstallCommands": "Manuel Kurulum Komutları",
     "oneClickInstallHint": "Claude Code / Codex / Gemini CLI / Grok Build / OpenCode / OpenClaw / Hermes / Pi / MiniMax Code'yi yükleyin veya yükseltin",
@@ -970,7 +971,7 @@
     "toolUpgradeConfirmBtn": "Yükseltmeyi onayla",
     "toolUpgradeUnanchoredHint": "Komut satırınızın hangi yüklemeyi kullandığı belirlenemiyor; varsayılan yükseltme komutunu çalıştıracaktır (PATH'deki ilk npm'ye yüklenebilir).",
     "toolUpgradeUnmanagedTitle": "Bu araçların yükseltilmesi atlandı",
-    "toolUpgradeUnmanagedDetail": "{{tool}} ({{path}}), npm veya tanınan bir yükleyici tarafından kurulmadığından CC Switch, onu nasıl yükselteceğini söyleyemez. Kurulum şeklinizi yükseltin (örn. Winget, Scoop veya resmi kurulum betiğini yeniden çalıştırın).",
+    "toolUpgradeUnmanagedDetail": "{{tool}} ({{path}}), npm veya tanınan bir yükleyici tarafından kurulmadığından MultiClaude, onu nasıl yükselteceğini söyleyemez. Kurulum şeklinizi yükseltin (örn. Winget, Scoop veya resmi kurulum betiğini yeniden çalıştırın).",
     "envBadge": {
       "wsl": "WSL",
       "windows": "Windows",
@@ -984,7 +985,7 @@
     "importFailedError": "Yapılandırma içe aktarılamadı: {{message}}",
     "exportFailedError": "Yapılandırmayı dışa aktarma başarısız oldu:",
     "restartRequired": "Yeniden Başlatma Gerekli",
-    "restartRequiredMessage": "CC Switch yapılandırma dizininde değişiklik yapılması, etkili olması için uygulamanın yeniden başlatılmasını gerektirir. Şimdi yeniden başlatılsın mı?",
+    "restartRequiredMessage": "MultiClaude yapılandırma dizininde değişiklik yapılması, etkili olması için uygulamanın yeniden başlatılmasını gerektirir. Şimdi yeniden başlatılsın mı?",
     "restartNow": "Şimdi Yeniden Başlat",
     "restartLater": "Daha Sonra Yeniden Başlat",
     "restartFailed": "Uygulama yeniden başlatılamadı. Lütfen manuel olarak kapatıp yeniden açın.",
@@ -1122,7 +1123,7 @@
     },
     "current": {
       "readFailed": "Pi'nin sağlayıcı yapılandırması okunamadı",
-      "stateUnavailableHint": "CC Switch, Pi'nin sağlayıcı yapılandırmasını okuyabilene kadar sağlayıcı değişiklikleri devre dışı bırakılır."
+      "stateUnavailableHint": "MultiClaude, Pi'nin sağlayıcı yapılandırmasını okuyabilene kadar sağlayıcı değişiklikleri devre dışı bırakılır."
     },
     "prompts": {
       "globalTab": "Kütüphane",
@@ -1175,7 +1176,7 @@
       "libraryLabel": "Pi bilgi istemi kitaplığı",
       "systemFilesLabel": "Pi sistem bilgi istemi dosyaları",
       "templatesLabel": "Pi bilgi istemi şablonları",
-      "externalTitle": "AGENTS.md, CC Switch dışında değiştirildi",
+      "externalTitle": "AGENTS.md, MultiClaude dışında değiştirildi",
       "externalDetail": "İçeriği ({{size}}) her kitaplık isteminden farklıdır, dolayısıyla hiçbiri etkin olarak gösterilmez. Başka bir tane etkinleştirilmeden önce kitaplığa kaydedilir.",
       "saveToLibrary": "Kitaplığa kaydet",
       "reloadAfterDelete": "Açık Pi oturumları, boştayken /reload komutunu çalıştırdığınızda değişikliği alır.",
@@ -1252,7 +1253,7 @@
     "expandContent": "Tüm içeriği genişlet",
     "collapseContent": "Daralt",
     "helpTitle": "Oturumların nereden geldiği",
-    "helpBody": "CC Switch, her uygulamanın bu bilgisayarda tuttuğu oturum kayıtlarını okur. ⋯ menüsündeki “Oturumların nerede saklandığı” konusuna bakın. Claude Desktop'nin kendine ait oturum kaydı yoktur.",
+    "helpBody": "MultiClaude, her uygulamanın bu bilgisayarda tuttuğu oturum kayıtlarını okur. ⋯ menüsündeki “Oturumların nerede saklandığı” konusuna bakın. Claude Desktop'nin kendine ait oturum kaydı yoktur.",
     "moreActions": "Daha fazla oturum eylemi",
     "refreshList": "Listeyi yenile",
     "listRefreshed": "Oturum listesi yenilendi",
@@ -1260,7 +1261,7 @@
     "preferredTerminal": "Tercih edilen terminal",
     "whereMenu": "Oturumların depolandığı yer",
     "whereTitle": "Oturumların depolandığı yer",
-    "whereLead": "CC Switch bu konumlardaki oturumları okur. Claude Desktop'nin kendine ait oturum kaydı yoktur.",
+    "whereLead": "MultiClaude bu konumlardaki oturumları okur. Claude Desktop'nin kendine ait oturum kaydı yoktur.",
     "whereNote": "Ayarlar'da özel bir yapılandırma dizinine sahip uygulamalar bu dizinden okunur.",
     "appPrefix": "Uygulama:",
     "chooseApp": "Uygulamayı seçin",
@@ -1303,7 +1304,7 @@
     "hermesLimit": "Hermes yalnızca en son 500 oturumu gösterir",
     "emptyApp": "Henüz {{app}} oturumu yok",
     "emptyAll": "Henüz oturum yok",
-    "emptyAppHint": "CC Switch, {{path}}'den oturum verilerini okur",
+    "emptyAppHint": "MultiClaude, {{path}}'den oturum verilerini okur",
     "emptySearch": "“{{query}}” ile eşleşen oturum başlığı, klasör veya ilk/son mesaj yok",
     "clearSearchAction": "Aramayı temizle",
     "backToList": "Oturumlara geri dön",
@@ -1832,8 +1833,8 @@
     "remove": {
       "titleOne": "“{{login}}” hesabı silinsin mi?",
       "titleAll": "Tüm {{service}} hesapları silinsin mi?",
-      "leadOne": "Bu, CC Switch’in bu hesap için tuttuğu oturum açma kimlik bilgilerini siler. Bu geri alınamaz.",
-      "leadAll": "Bu, CC Switch’in bu {{count}} hesapları için tuttuğu oturum açma kimlik bilgilerini siler. Bu geri alınamaz.",
+      "leadOne": "Bu, MultiClaude’in bu hesap için tuttuğu oturum açma kimlik bilgilerini siler. Bu geri alınamaz.",
+      "leadAll": "Bu, MultiClaude’in bu {{count}} hesapları için tuttuğu oturum açma kimlik bilgilerini siler. Bu geri alınamaz.",
       "brokenOne": "Bu sağlayıcılar, siz tekrar oturum açana veya başka bir hesap seçene kadar çalışmayı durduracaktır:",
       "brokenAll": "Bu sağlayıcılar siz tekrar oturum açana kadar çalışmayı durduracak:",
       "moved": "Bu sağlayıcılar varsayılan hesabı kullanır ve yeni varsayılana geçer:",
@@ -1993,7 +1994,7 @@
     "headerName": "Başlık",
     "headerValue": "Değer",
     "headerNamePlaceholder": "X-Başlığı",
-    "headerValuePlaceholder": "CC Switch",
+    "headerValuePlaceholder": "MultiClaude",
     "removeHeader": "Başlığı kaldır",
     "noHeaders": "Özel başlık yapılandırılmadı",
     "extraOptions": "Ekstra Seçenekler",
@@ -2280,11 +2281,11 @@
     "modelsDevDefaultHint": "En son piyasaya sürülen {{shown}} modelleri gösteriliyor ({{total}}'nin) — tümünü aramak için yazın",
     "modelsDevAutoSync": {
       "title": "Otomatik models.dev fiyatlandırma eşitlemeu",
-      "description": "Etkinleştirildiğinde, CC Switch piyasaya sürüldüğünde seçilen fiyatları periyodik olarak alın ve bunları yerel fiyatlandırma dosyanızda saklayın.",
+      "description": "Etkinleştirildiğinde, MultiClaude piyasaya sürüldüğünde seçilen fiyatları periyodik olarak alın ve bunları yerel fiyatlandırma dosyanızda saklayın.",
       "enabled": "Etkin",
       "disabled": "Devre dışı",
       "enableConfirmTitle": "Otomatik fiyatlandırma eşitlemeu etkinleştirilsin mi?",
-      "enableConfirmMessage": "Etkinleştirmenin ardından CC Switch, seçili modellerin fiyatlarını başlatıldığında models.dev'den periyodik olarak güncelleyecektir (en fazla 6 saatte bir). Aynı model kimliğine sahip yerleşik ve manuel olarak yapılandırılmış fiyatların üzerine yazılacaktır.",
+      "enableConfirmMessage": "Etkinleştirmenin ardından MultiClaude, seçili modellerin fiyatlarını başlatıldığında models.dev'den periyodik olarak güncelleyecektir (en fazla 6 saatte bir). Aynı model kimliğine sahip yerleşik ve manuel olarak yapılandırılmış fiyatların üzerine yazılacaktır.",
       "enableConfirmAction": "Otomatik eşitlemeu etkinleştir",
       "configure": "Modelleri seçin",
       "configureTitle": "Otomatik fiyatlandırma eşitlemeu için modelleri seçin",
@@ -2407,7 +2408,7 @@
     "sources": {
       "scanTitle": "Oturum günlüklerini otomatik olarak tara",
       "scanHelpTitle": "Oturum günlükleri nedir?",
-      "scanHelp": "Konuşma, bu bilgisayara yazılan her uygulamanın kaydını tutar. CC Switch bunların kullanımını okur, böylece yönlendirme olmadan bile veri alırsınız.",
+      "scanHelp": "Konuşma, bu bilgisayara yazılan her uygulamanın kaydını tutar. MultiClaude bunların kullanımını okur, böylece yönlendirme olmadan bile veri alırsınız.",
       "coverage": "7 uygulamayı kapsar: {{apps}}",
       "cadenceOn": "Başlangıçta ve arka planda her 60 saniyede bir tarar; kullanım sayfası görünürken otomatik yenileme aralığında da eşitler",
       "cadenceOff": "Otomatik tarama kapalı; günlükler yalnızca Şimdi Eşitle'ye tıkladığınızda taranır",
@@ -2545,7 +2546,7 @@
   },
   "dbUpgrade": {
     "title": "Veritabanı sürümü çok yeni",
-    "description": "Bu veritabanı CC Switch’in daha yeni bir sürümü tarafından oluşturuldu. Devam etmek için uygulamayı yükseltin. Yükseltme verilerinizi silmez.",
+    "description": "Bu veritabanı MultiClaude’in daha yeni bir sürümü tarafından oluşturuldu. Devam etmek için uygulamayı yükseltin. Yükseltme verilerinizi silmez.",
     "versionInfo": "Veritabanı v{{db}} · Uygulama v{{supported}}'yi destekliyor",
     "dbPath": "Veritabanı dosyası",
     "checking": "Mevcut güncellemeler kontrol ediliyor…",
@@ -2591,7 +2592,7 @@
       "deleteConfirm": "\"{{id}}\" sunucusunu silmek istediğinizden emin misiniz? Bu eylem geri alınamaz.",
       "noServers": "Henüz sunucu yok",
       "enabledApps": "Etkin Uygulamalar",
-      "noImportFound": "İçe aktarılacak MCP sunucusu bulunamadı. Tüm sunucular zaten CC Switch tarafından yönetilmektedir.",
+      "noImportFound": "İçe aktarılacak MCP sunucusu bulunamadı. Tüm sunucular zaten MultiClaude tarafından yönetilmektedir.",
       "importSuccess": "{{count}} MCP sunucuları başarıyla içe aktarıldı",
       "searchPlaceholder": "MCP adını, açıklamasını, etiketini veya komutunu arayın...",
       "searchAriaLabel": "Yönetilen MCP sunucularını arayın",
@@ -2749,7 +2750,7 @@
     "name": "İsim",
     "namePlaceholder": "örneğin Takım kodlama kuralları",
     "description": "Not",
-    "descriptionPlaceholder": "İsteğe bağlı, yalnızca CC Switch’te gösterilir",
+    "descriptionPlaceholder": "İsteğe bağlı, yalnızca MultiClaude’te gösterilir",
     "content": "Metin",
     "contentPlaceholder": "#{{filename}}\n\nMarkdown'da {{appName}} için ayakta talimatlar…",
     "loadFailed": "İstemler yüklenemedi",
@@ -2809,7 +2810,7 @@
     "deleteBlocked": "Silmeden önce devre dışı bırakın",
     "emptyTitle": "Henüz {{app}} istemi yok",
     "emptyTarget": "Etkinleştirilen bilgi istemi {{path}}'ye yazılır.",
-    "emptyFile": "{{path}}, henüz CC Switch’te olmayan {{size}} içeriğe zaten sahip",
+    "emptyFile": "{{path}}, henüz MultiClaude’te olmayan {{size}} içeriğe zaten sahip",
     "importExisting": "Mevcut içeriği içe aktar",
     "formDescription": "{{file}}'ye yazılan ad, not ve metin",
     "requiredMark": "(gerekli)",
@@ -2850,7 +2851,7 @@
       "savedActive": "\"{{name}}\" kaydedildi ve {{path}}'nin üzerine yazıldı",
       "savedActivePi": "\"{{name}}\" kaydedildi ve AGENTS.md yazıldı",
       "deleted": "\"{{name}}\" silindi",
-      "deletedSub": "Yalnızca CC Switch’ten kaldırıldı; {{path}} değişmedi",
+      "deletedSub": "Yalnızca MultiClaude’ten kaldırıldı; {{path}} değişmedi",
       "deletedPiSub": "Yalnızca kitaplıktan kaldırıldı; AGENTS.md değişmedi",
       "restored": "\"{{name}}\" geri yüklendi",
       "imported": "{{path}}'nin içeriği içe aktarıldı; dosya değişmedi",
@@ -3172,7 +3173,7 @@
     "installSuccess": "Beceri {{name}} yüklü",
     "installFailed": "Yükleme başarısız oldu",
     "uninstallSuccess": "Beceri {{name}} kaldırıldı",
-    "uninstallPiPreserved": "Pi kopyasının CC Switch tarafından yönetildiği doğrulanamadı ve yerinde bırakıldı: {{path}}",
+    "uninstallPiPreserved": "Pi kopyasının MultiClaude tarafından yönetildiği doğrulanamadı ve yerinde bırakıldı: {{path}}",
     "uninstallPiCleanupIncomplete": "Pi temizliği tamamlanamadı. Kalan bir kopya için Pi Skills dizinini manuel olarak kontrol edin.",
     "uninstallFailed": "Kaldırma işlemi başarısız oldu",
     "update": "Güncelle",
@@ -3271,10 +3272,10 @@
     "noInstalledDescription": "Depolardan becerileri keşfedin ve yükleyin veya mevcut becerileri içe aktarın",
     "discover": "Becerileri Keşfedin",
     "import": "Mevcut Olanı İçe Aktar",
-    "importDescription": "CC Switch birleşik yönetimine aktarılacak becerileri seçin",
+    "importDescription": "MultiClaude birleşik yönetimine aktarılacak becerileri seçin",
     "importSuccess": "{{count}} becerileri başarıyla içe aktarıldı",
     "importSelected": "Seçilenleri İçe Aktar ({{count}})",
-    "noUnmanagedFound": "İçe aktarılacak beceri bulunamadı. Tüm beceriler zaten CC Switch tarafından yönetilmektedir.",
+    "noUnmanagedFound": "İçe aktarılacak beceri bulunamadı. Tüm beceriler zaten MultiClaude tarafından yönetilmektedir.",
     "unmanagedAvailable": "İçe aktarılabilecek beceriler",
     "foundIn": "Bulundu",
     "local": "Yerel",
@@ -3332,7 +3333,7 @@
       "resyncPartial": "{{count}} uygulamaları tam olarak eşitle edilemedi: {{apps}}",
       "resyncSkillItem": "{{directory}}: {{error}}",
       "locationTitle": "Ana kopyaları saklayın",
-      "locationCcSwitch": "CC Switch klasörü",
+      "locationCcSwitch": "MultiClaude klasörü",
       "locationUnified": "Paylaşılan klasör",
       "openFolder": "Aç",
       "openFolderAria": "{{path}}'yi açın",
@@ -3340,7 +3341,7 @@
       "move": "Taşı ve değiştir",
       "moving": "Taşınıyor…",
       "moveConfirmTitle": "{{count}} Becerileri {{path}}'ye taşınsın mı?",
-      "moveConfirmBody": "Her ana kopya taşınır, ardından her uygulamadaki bağlantılar yeni konuma yönlendirilir. Taşıma bitene kadar CC Switch’ten ayrılmayın.",
+      "moveConfirmBody": "Her ana kopya taşınır, ardından her uygulamadaki bağlantılar yeni konuma yönlendirilir. Taşıma bitene kadar MultiClaude’ten ayrılmayın.",
       "moveConfirmButton": "Taşı ve değiştir",
       "moveDone": "{{count}} Becerileri {{path}}'ye taşındı",
       "movePartial": "{{migrated}} Becerileri taşındı, {{errors}} başarısız oldu. Ayrıntılar için günlükleri kontrol edin.",
@@ -3356,7 +3357,7 @@
   },
   "deeplink": {
     "confirmImport": "İçe Aktarma Sağlayıcısını Onayla",
-    "confirmImportDescription": "Aşağıdaki yapılandırma derin bağlantıdan CC Switch uygulamasını aktarılacak",
+    "confirmImportDescription": "Aşağıdaki yapılandırma derin bağlantıdan MultiClaude uygulamasını aktarılacak",
     "importPrompt": "İçe Aktarma İstemi",
     "importPromptDescription": "Lütfen bu sistem isteminin içe aktarılıp aktarılmayacağını onaylayın",
     "importMcp": "MCP Sunucularını İçe Aktar",
@@ -3441,7 +3442,7 @@
       "privateEndpoint": "Bu adres localhost'a veya özel bir ağa işaret eder. Kendi yerel hizmetiniz olmadığı sürece ithalat yapmayın.",
       "shellCommand": "Bu yapılandırma, bir kabuk aracılığıyla tam bir komut satırı çalıştırır; gerçekte yürütülen şey argümanlardadır. Her satırı inceleyin."
     },
-    "providerEnabledWarning": "İçe aktarıldıktan sonra CC Switch hemen bu sağlayıcıya geçer; istemci istekleri yukarıdaki uç noktaya gönderilir",
+    "providerEnabledWarning": "İçe aktarıldıktan sonra MultiClaude hemen bu sağlayıcıya geçer; istemci istekleri yukarıdaki uç noktaya gönderilir",
     "apiFormat": "API biçimi",
     "switchAfterImport": "İçe aktardıktan sonra bu sağlayıcıya geç",
     "addToAppAfterImport": "İçe aktardıktan sonra {{app}} yapılandırmasına ekle",
@@ -3644,7 +3645,7 @@
         "authTitle": "Codex önceki hesabı hâlâ önbelleğe alabilir; yeni oturum açma bilgilerini yüklemek için arka plan sunucusunu yeniden başlatın",
         "title": "Codex hala eski bir model listesi kullanıyor, dolayısıyla mevcut modeller gösterilmiyor",
         "unverifiedTitle": "Geçişten önce açık olan Codex uygulamaları önceki hesabı veya model listesini kullanmaya devam edebilir",
-        "unverifiedHint": "CC Switch, masaüstü uygulamasının veya düzenleyici uzantılarının çalışıp çalışmadığını anlayamıyor. Açık değillerse bu bildirimi kapatın.",
+        "unverifiedHint": "MultiClaude, masaüstü uygulamasının veya düzenleyici uzantılarının çalışıp çalışmadığını anlayamıyor. Açık değillerse bu bildirimi kapatın.",
         "daemon": "CLI: kodeksi yeniden açmak yeterli değil; arka plan arka plan programının yeniden başlatılması gerekiyor.",
         "others": "Masaüstü uygulaması: tamamen çıkın ve yeniden açın (macOS'de ⌘Q; pencereyi kapatmak yeterli değildir). Editör uzantıları: editör penceresini yeniden açın.",
         "restart": "Codex arka plan programını yeniden başlatın",
@@ -4043,7 +4044,7 @@
     "appsTitle": "Uygulamalar: yükleyin, yükseltin, kenar çubuğunda hangilerinin gösterileceğini seçin",
     "appsHasUpdate": "Uygulamalar · güncellemeler mevcut",
     "settings": "Ayarlar",
-    "settingsHasUpdate": "Ayarlar · yeni bir CC Switch sürümü mevcut",
+    "settingsHasUpdate": "Ayarlar · yeni bir MultiClaude sürümü mevcut",
     "mode": {
       "route": "Yönlendirme",
       "stack": "Birleştirme",
@@ -4067,7 +4068,7 @@
     "columnVersion": "Sürüm",
     "columnVisible": "Göster",
     "visibleHelp": "Kapalıyken uygulama artık kenar çubuğunda, MCP / Skills uygulama sütunlarında veya İstemler ve Oturumlar'daki uygulama seçicilerde görünmez. Mevcut yapılandırması kalır ve eşitlemea devam eder.",
-    "desktopHelp": "Claude Desktop bir masaüstü uygulamasıdır ve buraya yüklenemez veya yükseltilemez; CC Switch, yapılandırma dosyası aracılığıyla ona bağlanır.",
+    "desktopHelp": "Claude Desktop bir masaüstü uygulamasıdır ve buraya yüklenemez veya yükseltilemez; MultiClaude, yapılandırma dosyası aracılığıyla ona bağlanır.",
     "desktopUnsupported": "Bu sistemde desteklenmiyor",
     "desktopConnected": "Bağlı",
     "desktopNotConnected": "Bağlı değil",
@@ -4153,15 +4154,15 @@
       "routeTitle": "{{app}} için yönlendirme kullanılsın mı?",
       "stackTitle": "{{app}} için Birleştirme kullanılsın mı?",
       "switchTitle": "{{app}}, \"{{from}}\" yerine \"{{to}}\" olarak değiştirilsin mi?",
-      "routeLead": "İstekler önce bu makinedeki CC Switch üzerinden, ardından seçtiğiniz sağlayıcıya iletilir.",
+      "routeLead": "İstekler önce bu makinedeki MultiClaude üzerinden, ardından seçtiğiniz sağlayıcıya iletilir.",
       "stackLead": "Varsayılan sağlayıcı, önek olmadan istekleri alır.",
       "routeTo": "Şuraya yönlendir",
       "stackDefault": "Varsayılan sağlayıcı",
       "officialOption": "{{name}} (resmi)",
       "stackOfficialNote": "Resmi bir abonelik kullanıyorsanız resmi hesabı varsayılan sağlayıcı olarak ayarlayın.",
-      "routeNoteFile": "{{file}}'deki adresi ve anahtarı yeniden yazar. Gerçek anahtar CC Switch’te kalır; diğer ayarlara dokunulmaz.",
+      "routeNoteFile": "{{file}}'deki adresi ve anahtarı yeniden yazar. Gerçek anahtar MultiClaude’te kalır; diğer ayarlara dokunulmaz.",
       "routeNoteSwitch": "Sağlayıcıları daha sonra Yönlendirme sekmesinde değiştirmek, yapılandırma dosyasını yeniden yazmaz.",
-      "routeNoteKeepRunning": "CC Switch'yi çalışır durumda tutun. Çıkmak doğrudan yapılandırmayı geri yazar; bir sonraki başlangıçta yeniden bağlanır.",
+      "routeNoteKeepRunning": "MultiClaude'yi çalışır durumda tutun. Çıkmak doğrudan yapılandırmayı geri yazar; bir sonraki başlangıçta yeniden bağlanır.",
       "stackNoteMembers": "{{names}}, /model içinde ccs- önekiyle gösterilen {{count}} modellerini ekler.",
       "stackNoteEmpty": "Henüz başka sağlayıcı eklenmediğinden yalnızca varsayılan kullanılabilir. Daha sonra Birleştirme sekmesine daha fazlasını ekleyebilirsiniz.",
       "stackNoteNoFailover": "Birleştirmenın yedek sağlayıcıya geçiş özelliği yoktur. Kuyruk ve ayarları tutulur ve yönlendirme ile geri gelir.",
@@ -4176,8 +4177,8 @@
     },
     "help": {
       "title": "Bağlantı modları nasıl farklılık gösterir?",
-      "direct": "Doğrudan: CC Switch isteklerinize müdahale etmez; istemci, seçtiğiniz sağlayıcıyla kendi yerel özelliklerini kullanarak doğrudan iletişim kurar.",
-      "route": "Yönlendirme: İstekler bu bilgisayardaki CC Switch üzerinden geçer; anında sağlayıcı değiştirme, yedek sağlayıcıya geçiş, biçim dönüştürme ve diğer gelişmiş özellikleri kullanabilirsiniz.",
+      "direct": "Doğrudan: MultiClaude isteklerinize müdahale etmez; istemci, seçtiğiniz sağlayıcıyla kendi yerel özelliklerini kullanarak doğrudan iletişim kurar.",
+      "route": "Yönlendirme: İstekler bu bilgisayardaki MultiClaude üzerinden geçer; anında sağlayıcı değiştirme, yedek sağlayıcıya geçiş, biçim dönüştürme ve diğer gelişmiş özellikleri kullanabilirsiniz.",
       "stack": "Birleştirme: Farklı sağlayıcıların modelleri /model içinde birlikte listelenir; istemci içinde modeller arasında kesintisiz geçiş yapabilirsiniz."
     },
     "stack": {
@@ -4287,7 +4288,7 @@
     "clientHost": "Bağlantı adresi",
     "clientHostHint": "İstemcilerin bağlandığı yer. Boş: dinleme adresi",
     "clientHostInvalid": "İstemcilerin ulaşabileceği bir IP adresi veya ana bilgisayar adı girin",
-    "clientHostHelp": "CC Switch ana bilgisayarı istemci yapılandırmalarına yazar (Claude Desktop'nin ağ geçidi URL'si dahil). Dinleme adresinden türetmek için boş bırakın. İstemciler bu makineye geridöngü yoluyla erişemediğinde bunu ayarlayın; WSL2 içindeki Claude Desktop oturumları (NAT modu): dinleme adresini 0.0.0.0 olarak ayarlayın ve WSL'nin ulaşabileceği bir Windows IP girin (vEthernet (WSL) bağdaştırıcı adresi gibi) ve bağlantı noktasının güvenlik duvarı üzerinden geçmesine izin verin.",
+    "clientHostHelp": "MultiClaude ana bilgisayarı istemci yapılandırmalarına yazar (Claude Desktop'nin ağ geçidi URL'si dahil). Dinleme adresinden türetmek için boş bırakın. İstemciler bu makineye geridöngü yoluyla erişemediğinde bunu ayarlayın; WSL2 içindeki Claude Desktop oturumları (NAT modu): dinleme adresini 0.0.0.0 olarak ayarlayın ve WSL'nin ulaşabileceği bir Windows IP girin (vEthernet (WSL) bağdaştırıcı adresi gibi) ve bağlantı noktasının güvenlik duvarı üzerinden geçmesine izin verin.",
     "logging": "İstek kullanımını kaydet",
     "loggingHelp": "Kapalıyken Kullanım, yönlendirilen istekler için istek başına ayrıntıya sahip değildir.",
     "usingApps": "Yönlendirmeyi kullanan uygulamalar · {{count}}",
@@ -4385,7 +4386,7 @@
     "failNoticeTitle": "{{app}}'nin yapılandırması yazılamadı",
     "failNoticeBody": "{{error}}. Dosyayı düzeltin ve Yeniden Dene'ye tıklayın.",
     "loadFailed": "MCP listesi yüklenemedi",
-    "noFilesChanged": "CC Switch hiçbir dosyayı değiştirmedi.",
+    "noFilesChanged": "MultiClaude hiçbir dosyayı değiştirmedi.",
     "emptyTitle": "Henüz MCP sunucusu yok",
     "emptyBody": "Uygulamalarınızda önceden kurulmuş olan MCP sunucuları içe aktarılabilir",
     "importHelpTitle": "İçe aktarma ne okur?",
@@ -4405,8 +4406,8 @@
     "disableEverywhere": "Her yeri kapat",
     "deleteEllipsis": "Sil",
     "deleteTitle": "{{id}} silinsin mi?",
-    "deleteBodyApps": "Bu, onu CC Switch’ten ve {{apps}}'nin yapılandırma dosyalarından kaldırır. Bu geri alınamaz.",
-    "deleteBody": "Bu onu CC Switch’ten kaldırır. Bu geri alınamaz.",
+    "deleteBodyApps": "Bu, onu MultiClaude’ten ve {{apps}}'nin yapılandırma dosyalarından kaldırır. Bu geri alınamaz.",
+    "deleteBody": "Bu onu MultiClaude’ten kaldırır. Bu geri alınamaz.",
     "toast": {
       "written": "{{app}}'ye yazıldı",
       "rowAllOn": "{{id}}, tüm {{count}} uygulamalarında etkindir",
@@ -4425,7 +4426,7 @@
       "title": "İçe aktarma tamamlandı",
       "added": "{{count}} MCP sunucuları eklendi: {{names}}.",
       "none": "Yeni MCP sunucusu bulunamadı.",
-      "sameName": "Listede zaten bulunan sunucular için yalnızca eşleşen uygulamalar etkinleştirildi; CC Switch’teki yapılandırma önceliğini korur.",
+      "sameName": "Listede zaten bulunan sunucular için yalnızca eşleşen uygulamalar etkinleştirildi; MultiClaude’teki yapılandırma önceliğini korur.",
       "failedTitle": "Bazı uygulamalar okunamadı",
       "filesTitle": "Hangi dosyalar okundu",
       "claudeNote": " (üst düzey mcpServers)",
@@ -4521,7 +4522,7 @@
       "metaHint": "Görünen ad, açıklama, etiketler, ana sayfa, dokümanlar",
       "displayName": "Görünen ad",
       "displayNameHelpTitle": "Görünen adın gösterildiği yer",
-      "displayNameHelp": "Yalnızca CC Switch’te gösterilir; uygulama yapılandırmalarına yazılmaz.",
+      "displayNameHelp": "Yalnızca MultiClaude’te gösterilir; uygulama yapılandırmalarına yazılmaz.",
       "description": "Açıklama",
       "tags": "Etiketler",
       "tagsPlaceholder": "Virgülle ayrılmış, ör. dokümanlar, web",
@@ -4533,7 +4534,7 @@
   "skillsPage": {
     "noun": "Beceriler",
     "helpTitle": "Beceriler nasıl eşitle edilir?",
-    "help": "Ana kopya CC Switch’in klasöründe bulunur ve işaretlediğiniz uygulamalarla eşitle edilir. Claude Desktop ve OpenClaw, Becerileri desteklemediğinden sütunları yoktur.",
+    "help": "Ana kopya MultiClaude’in klasöründe bulunur ve işaretlediğiniz uygulamalarla eşitle edilir. Claude Desktop ve OpenClaw, Becerileri desteklemediğinden sütunları yoktur.",
     "add": "Beceri Ekle",
     "addMenu": {
       "discover": "Keşfet'te Göz Atın",
@@ -4552,7 +4553,7 @@
     "lastChecked": "Son kontrol: {{when}}",
     "justNow": "şimdi",
     "banner": {
-      "unmanaged": "{{count}} Bu bilgisayardaki beceriler CC Switch tarafından yönetilmiyor.",
+      "unmanaged": "{{count}} Bu bilgisayardaki beceriler MultiClaude tarafından yönetilmiyor.",
       "reviewImport": "İnceleyin ve içe aktarın",
       "ignore": "Yoksay",
       "close": "Reddet"
@@ -4602,7 +4603,7 @@
     "confirm": {
       "uninstallOne": "{{name}} kaldırılsın mı?",
       "uninstallMany": "{{count}} Skills kaldırılsın mı?",
-      "uninstallBody": "Her uygulamadan kaldırılır ve CC Switch’teki ana kopya silinir. Önce {{path}}'ye bir yedekleme kaydedilir.",
+      "uninstallBody": "Her uygulamadan kaldırılır ve MultiClaude’teki ana kopya silinir. Önce {{path}}'ye bir yedekleme kaydedilir.",
       "uninstallManyButton": "{{count}}'yi kaldırın",
       "updateAll": "{{count}} Becerileri güncellensin mi?",
       "updateBody": "Güncelleme, yerel klasörü depo içeriğiyle değiştirir. Yerel düzenlemeler yalnızca yedeklemede ({{path}}) tutulur.",
@@ -4671,14 +4672,14 @@
     "import": {
       "title": "Bu bilgisayardan Becerileri içe aktar",
       "helpTitle": "Bu bilgisayarda zaten sayılanlar",
-      "help": "SKILL.md içeren ancak henüz CC Switch tarafından yönetilmeyen klasörler.",
-      "lead": "İçe aktarma bunları CC Switch’in klasörüne kopyalar; orijinal dosyalar oldukları gibi kalır.",
+      "help": "SKILL.md içeren ancak henüz MultiClaude tarafından yönetilmeyen klasörler.",
+      "lead": "İçe aktarma bunları MultiClaude’in klasörüne kopyalar; orijinal dosyalar oldukları gibi kalır.",
       "searchPlaceholder": "Ad veya konum arayın",
       "searchAria": "İçe aktarılacak becerilerde ara",
       "selectAll": "Tümünü seç",
       "selectNone": "Hiçbirini seçme",
       "foundIn": "Bulunan: {{places}}",
-      "foundCcSwitch": "CC Switch klasörü",
+      "foundCcSwitch": "MultiClaude klasörü",
       "appsTitle": "İçe aktardıktan sonra bu uygulamalarda etkinleştirin",
       "appsHelpTitle": "Varsayılan olarak hangi uygulamalar işaretlenir",
       "appsHelp": "\"Bulundu\" altında listelenen uygulamalar işaretlenir ve yalnızca orada bulunan Becerileri etkinleştirir; işaretlediğiniz herhangi bir uygulama, içe aktarılan her Beceriyi etkinleştirir. Pi, klasörüne göre belirlendiğinden listelenmez.",
@@ -4700,7 +4701,7 @@
     "updatingProgress": "{{done}}/{{total}} güncelleniyor…"
   },
   "newLayoutNotice": {
-    "title": "CC Switch yeni bir görünüme sahip",
+    "title": "MultiClaude yeni bir görünüme sahip",
     "body": "Bu sürüm, arayüzü yeniden tasarladığı için birkaç şey değişti:\n• Modlar artık her uygulama sayfasının üst kısmında yer alıyor\n• Kullanım ve Hesaplar kenar çubuğundadır\nDeğişen her şey için sürüm notlarına bakın.",
     "viewReleaseNotes": "Sürüm notlarını görüntüle",
     "confirm": "Anladım"

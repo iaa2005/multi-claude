@@ -9,14 +9,14 @@
 //! 2. 本机 Codex 自带的列表（`codex debug models --bundled`）：和账号无关，可能缺账号专属
 //!    的模型。
 //!
-//! 不用 `~/.codex/models_cache.json`：它是哪个账号、哪个版本写的，CC Switch 证明不了。
+//! 不用 `~/.codex/models_cache.json`：它是哪个账号、哪个版本写的，MultiClaude 证明不了。
 //!
 //! 服务端按 `client_version` 裁剪列表，版本取本机在用的 Codex 里最新的那个（见
 //! [`newest_codex_version`]）。一个来源里没有一条能在模型选择器里选的模型（`visibility`
 //! 都不是 `list`）就不算合格：照写的话官方模型全被藏起来，选择器里只剩第三方的（#8014）。
 //!
 //! 凭据取自操作之后 Codex 实际会用的登录（目标登录，见 `codex_direct`）。托管账号的
-//! token 归 CC Switch 管，照常取；其余登录只读、绝不刷新：refresh token 会轮换，CC Switch
+//! token 归 MultiClaude 管，照常取；其余登录只读、绝不刷新：refresh token 会轮换，MultiClaude
 //! 刷新了，Codex 手里那份就作废，用户会被登出。token 过期或被拒时退回自带列表，等 Codex
 //! 自己刷新。
 //!
@@ -359,7 +359,7 @@ fn fetch_models(login: &OfficialLogin, version: &str, etag: Option<&str>) -> Fet
 /// 缓存里一个身份的条目。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Entry {
-    /// Unix 秒：只按数据本身的年龄判断新旧，和 CC Switch 运行了多久无关。
+    /// Unix 秒：只按数据本身的年龄判断新旧，和 MultiClaude 运行了多久无关。
     fetched_at: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     etag: Option<String>,
@@ -755,7 +755,7 @@ fn state_slot() -> &'static OnceLock<crate::store::AppState> {
     &SLOT
 }
 
-/// 刷新存进了变化的列表，客户端文件还没按它重写成功。只记在进程里：CC Switch 重启时
+/// 刷新存进了变化的列表，客户端文件还没按它重写成功。只记在进程里：MultiClaude 重启时
 /// 接上会强制重写，用的就是新缓存。
 static CLIENT_BEHIND: AtomicBool = AtomicBool::new(false);
 
@@ -770,7 +770,7 @@ pub(crate) fn take_client_behind() -> bool {
 }
 
 /// 列表变了：按新列表重算契约，变了就重写目录（用户重启 Codex 后看到新模型）。后台检查
-/// 还没开始时（CC Switch 正在启动）先不写，标记留给第一次检查。
+/// 还没开始时（MultiClaude 正在启动）先不写，标记留给第一次检查。
 pub(crate) fn after_refresh() {
     let Some(state) = state_slot().get().cloned() else {
         return;
@@ -780,7 +780,7 @@ pub(crate) fn after_refresh() {
     });
 }
 
-/// CC Switch 启动时开始后台检查：先查一次，之后每 15 分钟一次。不是「每 6 小时」的
+/// MultiClaude 启动时开始后台检查：先查一次，之后每 15 分钟一次。不是「每 6 小时」的
 /// 定时器：从进程启动开始计时的话，每次只运行几小时的用户永远等不到刷新。
 pub(crate) fn start_background_checks(state: crate::store::AppState) {
     let _ = state_slot().set(state.clone());
@@ -1136,7 +1136,7 @@ mod tests {
             slugs(&rows_for_switch(&Ok(login.clone()))),
             vec!["cached", "new-model"]
         );
-        // 后台检查还没开始（CC Switch 正在启动）时刷新完了：不重写，标记留给第一次检查。
+        // 后台检查还没开始（MultiClaude 正在启动）时刷新完了：不重写，标记留给第一次检查。
         for _ in 0..50 {
             if CLIENT_BEHIND.load(Ordering::SeqCst) {
                 break;

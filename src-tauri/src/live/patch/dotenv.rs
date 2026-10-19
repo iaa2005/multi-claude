@@ -11,7 +11,7 @@ pub struct DotenvPatch {
     /// 命中谓词的变量先全部删掉（关键字段）；`set` 里有的留给它原位改值。
     pub clear: Option<fn(&str) -> bool>,
     /// 目标值：第一处原位改写（保留 `export ` 前缀），重复的其余行删掉；没有就追加。
-    /// 值按原样写成 `KEY=value`，和 CC Switch 现有的写法一致。
+    /// 值按原样写成 `KEY=value`，和 MultiClaude 现有的写法一致。
     pub set: Vec<(String, String)>,
     /// 当前值（去掉引号后）等于其中之一才删除。`set` 里有同名变量时跳过。
     pub remove_if: Vec<(String, Vec<String>)>,

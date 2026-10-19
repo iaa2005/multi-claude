@@ -17,7 +17,7 @@ use crate::error::AppError;
 const COMPRESSED_SUFFIX: &str = ".zst";
 const PLAIN_SUFFIX: &str = ".jsonl";
 const READER_CAPACITY: usize = 1 << 20;
-/// 与 Codex 压缩时用的级别无关，只用于 CC Switch 原地改写压缩文件（历史分桶迁移）。
+/// 与 Codex 压缩时用的级别无关，只用于 MultiClaude 原地改写压缩文件（历史分桶迁移）。
 const WRITE_LEVEL: i32 = 3;
 
 fn file_name(path: &Path) -> Option<&str> {

@@ -10,7 +10,7 @@
 //!   值就算冲突，由用户选保留哪一边。
 //!
 //! 改动的粒度：顶层的值；顶层表里的每个键（`[mcp_servers.fs]` 这类子表按整张算）；
-//! `[model_providers]` 下 CC Switch 路由表以外的每张表。嵌在用户表里的模型名是关键字段，
+//! `[model_providers]` 下 MultiClaude 路由表以外的每张表。嵌在用户表里的模型名是关键字段，
 //! 不算全局改动。
 
 use std::sync::Arc;
@@ -48,7 +48,7 @@ fn is_nested_floor(parent: &str, key: &str) -> bool {
         .any(|segments| segments.len() == 2 && segments[0] == parent && segments[1] == key)
 }
 
-/// 全局设置的每个位置：关键字段、独有字段、CC Switch 的路由表不算。`skip_routes` 是
+/// 全局设置的每个位置：关键字段、独有字段、MultiClaude 的路由表不算。`skip_routes` 是
 /// 配置选中的路由表：它归供应商（投影时按内容收成 custom 表），也不算。
 fn entries(doc: &DocumentMut, skip_routes: &[&str]) -> Vec<Entry> {
     let mut entries = Vec::new();

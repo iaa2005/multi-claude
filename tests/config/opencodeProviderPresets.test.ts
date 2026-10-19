@@ -131,7 +131,7 @@ describe("AWS Bedrock OpenCode Provider Presets", () => {
 });
 
 describe("OpenCode preset reasoning flags", () => {
-  // OpenCode 只给 reasoning 为真的模型生成思考档位；CC Switch 写的供应商 key
+  // OpenCode 只给 reasoning 为真的模型生成思考档位；MultiClaude 写的供应商 key
   // 对不上 models.dev，不写就一个档位都没有。
   const models = opencodeProviderPresets.flatMap((preset) =>
     Object.entries(preset.settingsConfig.models ?? {}).map(([id, model]) => ({

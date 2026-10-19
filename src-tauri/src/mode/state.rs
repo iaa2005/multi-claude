@@ -1,7 +1,7 @@
 //! `live-state.json`：这台设备上每个应用的客户端文件状态。
 //!
 //! - `mode`、`attached`、`proxy_route`、`contract`：直连 / 代理模式（`mode::controller`）；
-//! - `written`：CC Switch 上次写进客户端文件、之后要按记录删掉的东西（Grok 的模型表）；
+//! - `written`：MultiClaude 上次写进客户端文件、之后要按记录删掉的东西（Grok 的模型表）；
 //! - `stack`：代理模式的 Stack 模型（`mode::stack`）；
 //! - `pending`：一次写客户端文件的操作在发布前写下的意图，按文件记录写前、写后的
 //!   hash 和已备好的临时文件，崩溃后据此前滚或丢弃（`mode::operation`）。
@@ -74,7 +74,7 @@ pub struct ModeState {
     /// 没有值：这台设备还没运行过有双模式的版本，启动时按旧版遗留的接管状态定下来。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<Mode>,
-    /// 客户端文件当前是否指向代理。退出 CC Switch 时分离、下次启动再接上。
+    /// 客户端文件当前是否指向代理。退出 MultiClaude 时分离、下次启动再接上。
     #[serde(default, skip_serializing_if = "is_false")]
     pub attached: bool,
     /// 代理模式下路由到的供应商。和直连指针互相独立，退出代理时保留。
@@ -99,14 +99,14 @@ impl ModeState {
     }
 }
 
-/// CC Switch 上次写进客户端文件、切走时要按记录删掉的东西。
+/// MultiClaude 上次写进客户端文件、切走时要按记录删掉的东西。
 ///
 /// 不能按 live 现在的内容去找：客户端自己会改。Grok 的 `/settings` 会把 `models.default`
-/// 改成内置模型，按它找表就会漏删上一家的表；而 CC Switch 默认的表名 `grok-4.5` 正好是
+/// 改成内置模型，按它找表就会漏删上一家的表；而 MultiClaude 默认的表名 `grok-4.5` 正好是
 /// 内置模型 ID，留下的表会覆盖内置模型，把官方请求连同第三方 Key 发到第三方地址。
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Written {
-    /// Grok Build `config.toml` 里 CC Switch 写的 `[model."<名称>"]` 表。
+    /// Grok Build `config.toml` 里 MultiClaude 写的 `[model."<名称>"]` 表。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tables: Vec<String>,
     #[serde(flatten)]
@@ -208,7 +208,7 @@ pub mod op {
     pub const ENTER: &str = "enter";
     /// 退出代理模式：客户端文件写回直连供应商。
     pub const EXIT: &str = "exit";
-    /// 退出 CC Switch 时把客户端指回直连，模式不变。
+    /// 退出 MultiClaude 时把客户端指回直连，模式不变。
     pub const DETACH: &str = "detach";
     /// 启动时把客户端重新指向代理。
     pub const ATTACH: &str = "attach";
@@ -216,7 +216,7 @@ pub mod op {
     pub const ROUTE: &str = "route";
     /// 增删 Stack 模型（契约变了时同一操作里先改写客户端）。
     pub const STACK: &str = "stack";
-    /// Codex 改用 CC Switch 生成的模型目录（用户在 Stack 提示上点的）：一律重写客户端。
+    /// Codex 改用 MultiClaude 生成的模型目录（用户在 Stack 提示上点的）：一律重写客户端。
     pub const CATALOG: &str = "catalog";
 }
 
@@ -300,7 +300,7 @@ fn state_lock() -> &'static Mutex<()> {
 }
 
 /// 读状态文件。不存在时是空状态；内容坏了就挪到一旁（`live-state.json.corrupt-<时间>`）
-/// 从空状态开始：这是 CC Switch 自己的文件，里面只有未完成操作的意图。
+/// 从空状态开始：这是 MultiClaude 自己的文件，里面只有未完成操作的意图。
 pub fn load(store: &DeviceStore) -> Result<LiveState, AppError> {
     let path = store.state_path();
     let bytes = match fs::read(&path) {

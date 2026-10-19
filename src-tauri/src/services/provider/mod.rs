@@ -1222,7 +1222,7 @@ mod tests {
         );
     }
 
-    /// 编辑当前供应商、去掉它的独有字段：live 里 CC Switch 写进去的那个值随之删掉，
+    /// 编辑当前供应商、去掉它的独有字段：live 里 MultiClaude 写进去的那个值随之删掉，
     /// 用户自己的键不动。
     #[tokio::test]
     #[serial]

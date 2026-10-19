@@ -130,7 +130,7 @@ export function usesEditorView(appId: AppId): boolean {
   return EDITOR_VIEW_APP_IDS.includes(appId);
 }
 
-/** Claude Desktop、OpenClaw 不由 CC Switch 管理 MCP；Pi 1.0 起内置 MCP（`~/.pi/agent/mcp.json`） */
+/** Claude Desktop、OpenClaw 不由 MultiClaude 管理 MCP；Pi 1.0 起内置 MCP（`~/.pi/agent/mcp.json`） */
 export type McpAppId = Exclude<
   AppId,
   "claude-desktop" | "claude-science" | "openclaw"

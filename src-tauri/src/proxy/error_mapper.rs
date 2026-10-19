@@ -67,7 +67,7 @@ pub fn map_proxy_error_to_status(error: &ProxyError) -> u16 {
 pub fn get_error_message(error: &ProxyError) -> String {
     match error {
         ProxyError::UpstreamError { status, body } => {
-            // 上游没给内容时要明说，否则用户会以为是 CC Switch 把错误内容吞了（#6895）
+            // 上游没给内容时要明说，否则用户会以为是 MultiClaude 把错误内容吞了（#6895）
             let body = body
                 .as_deref()
                 .map(str::trim)

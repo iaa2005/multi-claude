@@ -7,7 +7,7 @@
 //! 也要整个重开才会重读。
 //!
 //! 判断一个进程读到的是哪份目录，不能比文件时间：内容没变时引擎不重写文件，时间不动；退出
-//! CC Switch 时撤掉目录指针、下次启动再写回，时间变了，早先启动的进程读到的却正是现在这份。
+//! MultiClaude 时撤掉目录指针、下次启动再写回，时间变了，早先启动的进程读到的却正是现在这份。
 //! 所以记下目录的代次：从哪个时刻起，新启动的 Codex 会读到哪份目录（[`HISTORY_FILENAME`]）。
 //! 一个进程读到的，是它启动之前开始的最后一代。
 //!
@@ -42,7 +42,7 @@ const HISTORY_LIMIT: usize = 32;
 /// 进程的启动时刻只精确到秒（`ps` 的 etime），每一代又是写完之后才记下的：启动时刻离一代的
 /// 开始不到这么久，就当它读到的是上一代。拿不准时宁可多提示一次。
 const MARGIN_MS: u64 = 2_000;
-/// 新启动的 Codex 不读 CC Switch 的目录（没有目录指针，或者指向别人的目录）。
+/// 新启动的 Codex 不读 MultiClaude 的目录（没有目录指针，或者指向别人的目录）。
 const NO_CATALOG: &str = "none";
 /// 守护进程停机宽限期的缺省值和上限（codex-rs `app-server-daemon/src/settings.rs`）。
 const DEFAULT_SHUTDOWN_GRACE_SECS: u64 = 60;
@@ -243,7 +243,7 @@ fn filetime_to_unix_ms(filetime: u64) -> Option<u64> {
 }
 
 fn run_restart(timeout: Duration) -> Result<Output, String> {
-    // 重启的必须是读 CC Switch 写的这份配置的守护进程（配置目录可能被覆盖到别处）。
+    // 重启的必须是读 MultiClaude 写的这份配置的守护进程（配置目录可能被覆盖到别处）。
     let codex_dir = get_codex_config_dir();
     let extra_env = [("CODEX_HOME", codex_dir.to_string_lossy().into_owned())];
     crate::commands::run_detected_tool_command_with_timeout(
@@ -309,7 +309,7 @@ fn record_history(
     history
 }
 
-/// 新启动的 Codex 现在会读到的目录：`config.toml` 顶层指向 CC Switch 的目录时是文件内容的
+/// 新启动的 Codex 现在会读到的目录：`config.toml` 顶层指向 MultiClaude 的目录时是文件内容的
 /// hash，否则是 [`NO_CATALOG`]。
 fn current_fingerprint() -> String {
     if !live_catalog_is_ours(&read_config_text()) {
@@ -351,7 +351,7 @@ fn current_login_fingerprint() -> Option<String> {
 pub(crate) fn stale_clients(store: &DeviceStore, check_catalog: bool) -> Option<StaleClients> {
     let env = env();
     let current = current_fingerprint();
-    // 顺手记一次：兜住在 CC Switch 之外改了目录的情况。
+    // 顺手记一次：兜住在 MultiClaude 之外改了目录的情况。
     let history = record(store, &current, (env.now_ms)());
     let servers = probe(&env);
     let mut stale = if check_catalog {
@@ -362,7 +362,7 @@ pub(crate) fn stale_clients(store: &DeviceStore, check_catalog: bool) -> Option<
     let login = current_login_fingerprint();
     if let Some(login) = &login {
         let history = record_history(store, LOGIN_HISTORY_FILENAME, login, (env.now_ms)());
-        // 首次观察不是切号；不能因进程早于安装 CC Switch 就声称它缓存了别的账号。
+        // 首次观察不是切号；不能因进程早于安装 MultiClaude 就声称它缓存了别的账号。
         if history.len() > 1 {
             if let Some(auth_stale) = judge(&history, login, &servers) {
                 let clients = stale.get_or_insert(StaleClients {
@@ -472,7 +472,7 @@ fn judge(history: &[Generation], current: &str, servers: &AppServers) -> Option<
 }
 
 /// 启动于 `started_ms` 的进程读到的是不是别的目录。早于记下的第一代、判断不了的：现在
-/// 不读 CC Switch 的目录（[`NO_CATALOG`]）时按新的算，否则从没进过代理的直连用户也会被
+/// 不读 MultiClaude 的目录（[`NO_CATALOG`]）时按新的算，否则从没进过代理的直连用户也会被
 /// 报；其余按旧的算。
 fn is_stale(history: &[Generation], current: &str, started_ms: u64) -> bool {
     history
@@ -784,7 +784,7 @@ mod tests {
         std::fs::write(dir.join("daemon.pid"), format!(r#"{{"pid":{pid}}}"#)).unwrap();
     }
 
-    /// 让新启动的 Codex 读 CC Switch 的目录（`catalog` 是目录内容），`None` 是撤掉指针。
+    /// 让新启动的 Codex 读 MultiClaude 的目录（`catalog` 是目录内容），`None` 是撤掉指针。
     fn point_at_catalog(catalog: Option<&str>) {
         let config = get_codex_config_dir().join("config.toml");
         match catalog {
@@ -850,7 +850,7 @@ mod tests {
         assert!(is_stale(&history, "b", 1_500_000));
         // 早于第一代：判断不了，按旧的算。
         assert!(is_stale(&history, "b", 500_000));
-        // 现在不读 CC Switch 的目录：早于第一代的按新的算；在我们的目录时启动的仍是旧的。
+        // 现在不读 MultiClaude 的目录：早于第一代的按新的算；在我们的目录时启动的仍是旧的。
         let history = [
             generation(1_000_000, "a"),
             generation(2_000_000, NO_CATALOG),
@@ -891,7 +891,7 @@ mod tests {
         point_at_catalog(Some("{\"models\":[]}"));
         let fingerprint = current_fingerprint();
         assert_eq!(fingerprint, sha256_hex(b"{\"models\":[]}"));
-        // 指向别人的目录：新启动的 Codex 不读 CC Switch 的目录。
+        // 指向别人的目录：新启动的 Codex 不读 MultiClaude 的目录。
         std::fs::write(
             get_codex_config_dir().join("config.toml"),
             "model_catalog_json = \"/elsewhere/models.json\"\n",
@@ -902,7 +902,7 @@ mod tests {
         assert_eq!(current_fingerprint(), NO_CATALOG);
     }
 
-    /// 进 Stack → 守护进程启动 → 退出 CC Switch（撤掉指针）→ 再打开（写回同一份目录）：守护进程
+    /// 进 Stack → 守护进程启动 → 退出 MultiClaude（撤掉指针）→ 再打开（写回同一份目录）：守护进程
     /// 读到的正是现在这份，不提示。退出期间重启过的守护进程读到的是没有目录的配置，要提示。
     #[test]
     #[serial]
@@ -930,7 +930,7 @@ mod tests {
         *table.lock().unwrap() = daemon_row("00:50");
         assert_eq!(stale_clients(&store, true), None);
 
-        // 退出 CC Switch，一分钟后再打开。
+        // 退出 MultiClaude，一分钟后再打开。
         point_at_catalog(None);
         observe(&store);
         clock.store(1_120_000, Ordering::SeqCst);
@@ -1004,7 +1004,7 @@ mod tests {
                 unverified: false
             })
         );
-        // 撤掉指针之后仍提示：桌面版还拿着 CC Switch 的旧目录，新启动的 Codex 读的是内置列表。
+        // 撤掉指针之后仍提示：桌面版还拿着 MultiClaude 的旧目录，新启动的 Codex 读的是内置列表。
         point_at_catalog(None);
         assert_eq!(
             stale_clients(&store, true),
@@ -1171,13 +1171,13 @@ mod tests {
         acknowledge(&store);
         assert_eq!(stale_clients(&store, true), None);
 
-        // 撤掉指针也是变了：开着的客户端还拿着 CC Switch 的目录。
+        // 撤掉指针也是变了：开着的客户端还拿着 MultiClaude 的目录。
         point_at_catalog(None);
         observe(&store);
         assert_eq!(stale_clients(&store, true), unverified(false, false));
         acknowledge(&store);
 
-        // 退出 CC Switch 撤掉、再启动写回同一份：最后和确认时一样，不提示。
+        // 退出 MultiClaude 撤掉、再启动写回同一份：最后和确认时一样，不提示。
         point_at_catalog(Some("b"));
         observe(&store);
         point_at_catalog(None);

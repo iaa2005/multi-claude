@@ -100,7 +100,7 @@ describe("SkillsStorageSheet", () => {
     });
   });
 
-  it("shows the real CC Switch folder and opens it", async () => {
+  it("shows the real MultiClaude folder and opens it", async () => {
     m.openDir.mockResolvedValue(undefined);
     renderDialog();
 

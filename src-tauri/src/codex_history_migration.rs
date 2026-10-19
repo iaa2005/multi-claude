@@ -2860,7 +2860,7 @@ model_provider = "aihubmix"
         assert!(!ids.contains("my-local-relay"));
     }
 
-    /// 端到端测试用的隔离 HOME：CC Switch 设置与 `~/.codex` 都落在临时目录。
+    /// 端到端测试用的隔离 HOME：MultiClaude 设置与 `~/.codex` 都落在临时目录。
     struct IsolatedHome {
         dir: tempfile::TempDir,
         original_test_home: Option<OsString>,

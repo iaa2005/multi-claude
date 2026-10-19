@@ -261,7 +261,7 @@ describe("SessionMarkdown", () => {
 
   it("renders table rows using only semantic cell elements", () => {
     const { container } = renderMarkdown(
-      ["| Name | Status |", "| --- | --- |", "| CC Switch | Ready |"].join(
+      ["| Name | Status |", "| --- | --- |", "| MultiClaude | Ready |"].join(
         "\n",
       ),
     );

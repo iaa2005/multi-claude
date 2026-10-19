@@ -1,4 +1,4 @@
-//! 写 Grok Build 的 `config.toml`：只替换 `models.default` 和 CC Switch 写的那张模型表，
+//! 写 Grok Build 的 `config.toml`：只替换 `models.default` 和 MultiClaude 写的那张模型表，
 //! 其余字节不碰。
 //!
 //! 写 Grok live 的入口（切换、新增第一个供应商、编辑当前供应商、同步、统一供应商、
@@ -41,7 +41,7 @@ pub(crate) fn projection(provider: &Provider) -> Result<GrokProjection, AppError
 
 /// 上次写进 live 的表。有写入记录就按记录；这台设备上新版还没写过（刚从旧版升级）时，
 /// 按旧版的写法推断：旧版把 `live_owner` 的行整份写进 live，它的 `models.default` 指的就是
-/// CC Switch 的表。用户的其他表旧版也会原样写回，但证明不了是 CC Switch 的，不删。
+/// MultiClaude 的表。用户的其他表旧版也会原样写回，但证明不了是 MultiClaude 的，不删。
 pub(crate) fn retired_tables(
     store: &DeviceStore,
     live_owner: Option<&Provider>,

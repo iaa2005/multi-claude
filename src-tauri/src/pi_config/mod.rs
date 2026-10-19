@@ -1,7 +1,7 @@
 //! Thin adapter for Pi's native files.
 //!
 //! Pi owns account login and the active provider/model in `settings.json`.
-//! CC Switch only manages explicit provider entries in `models.json`.
+//! MultiClaude only manages explicit provider entries in `models.json`.
 
 use crate::config::{atomic_write_private, get_home_dir};
 use crate::error::AppError;
@@ -157,7 +157,7 @@ pub(crate) fn replace_pi_provider(
     })?;
     if current != expected {
         return Err(AppError::Conflict(format!(
-            "Pi provider '{provider_key}' changed outside CC Switch"
+            "Pi provider '{provider_key}' changed outside MultiClaude"
         )));
     }
     if current == replacement {
@@ -211,7 +211,7 @@ fn remove_pi_provider_inner(
     };
     if expected.is_some_and(|expected| current != *expected) {
         return Err(AppError::Conflict(format!(
-            "Pi provider '{provider_key}' changed outside CC Switch"
+            "Pi provider '{provider_key}' changed outside MultiClaude"
         )));
     }
     providers.remove(provider_key);
@@ -239,7 +239,7 @@ pub(crate) fn restore_pi_provider_if_missing(
     }
 }
 
-/// Validate the shape CC Switch can persist as one
+/// Validate the shape MultiClaude can persist as one
 /// `models.json.providers.<provider_key>` node.
 ///
 /// Provider ownership is intentionally source-based: every explicit object in
@@ -417,7 +417,7 @@ fn ensure_models_revision(path: &Path, expected_revision: &str) -> Result<(), Ap
         Ok(())
     } else {
         Err(AppError::Conflict(format!(
-            "Pi models.json changed outside CC Switch: {}",
+            "Pi models.json changed outside MultiClaude: {}",
             path.display()
         )))
     }

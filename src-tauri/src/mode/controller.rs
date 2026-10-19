@@ -7,7 +7,7 @@
 //! |---|---|---|
 //! | 进入 | 写代理契约（路由供应商的） | proxy，接上，记下契约；路由没有值时用直连指针初始化 |
 //! | 退出 | 写回直连指针的供应商 | direct；路由保留 |
-//! | 分离（退出 CC Switch） | 同退出 | 模式、路由不变，未接上 |
+//! | 分离（退出 MultiClaude） | 同退出 | 模式、路由不变，未接上 |
 //! | 接上（启动） | 按保存的路由写代理契约 | 接上 |
 //! | 换路由 | 契约没变就不碰；变了先改写客户端 | 路由、契约 |
 //!
@@ -368,7 +368,7 @@ fn commit_state(state: &AppState, app: &AppType, target: &PendingTarget) -> Resu
 }
 
 /// 写代理契约。`target` 的 `contract` 由这里填好。契约没变时不碰客户端文件（返回假）；接上
-/// （启动时）一律重写：顺带核对路由供应商还能用（比如托管账号还在），并修正 CC Switch
+/// （启动时）一律重写：顺带核对路由供应商还能用（比如托管账号还在），并修正 MultiClaude
 /// 没运行期间客户端文件里的漂移。
 ///
 /// `next_stack` 是这次操作之后的 Stack 名单：参与契约计算，随同一个操作落定
@@ -383,7 +383,7 @@ async fn write_proxy(
     next_stack: Option<StackState>,
 ) -> Result<bool, String> {
     let (proxy_url, codex_base_url) = state.proxy_service.build_proxy_urls().await?;
-    // 改用 CC Switch 的目录时契约可能没变（指针只在 live 里），也要重写。
+    // 改用 MultiClaude 的目录时契约可能没变（指针只在 live 里），也要重写。
     let force = op_name == op::ATTACH || op_name == op::CATALOG;
     let stack = match &next_stack {
         Some(next) => next.clone(),
@@ -920,7 +920,7 @@ pub async fn exit_apps_in_mode(state: &AppState, stack: bool) -> Result<Vec<Stri
     Ok(exited)
 }
 
-/// `keep_mode` 为真是分离（退出 CC Switch）：模式和路由不变，只把客户端指回直连。
+/// `keep_mode` 为真是分离（退出 MultiClaude）：模式和路由不变，只把客户端指回直连。
 fn exit_locked(state: &AppState, app: &AppType, keep_mode: bool) -> Result<(), String> {
     let mode = current::mode_state(app);
     if keep_mode && !mode.attached {
@@ -1047,7 +1047,7 @@ pub async fn exit_all(state: &AppState) -> Result<(), String> {
     }
 }
 
-/// 退出 CC Switch 时：把接上代理的客户端都指回直连（模式不变，下次启动再接上），再停掉
+/// 退出 MultiClaude 时：把接上代理的客户端都指回直连（模式不变，下次启动再接上），再停掉
 /// 代理服务。
 pub async fn detach_all(state: &AppState) {
     for app in PROXY_APPS {
@@ -1219,7 +1219,7 @@ pub fn reject_unsupported_official(app: &AppType, provider: &Provider) -> Result
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StackWriteError {
-    /// 已部分写入：客户端文件可能一半新一半旧，下次操作这个应用或重启 CC Switch 时按
+    /// 已部分写入：客户端文件可能一半新一半旧，下次操作这个应用或重启 MultiClaude 时按
     /// pending 补完，最终是新名单。为假时什么都没改。
     pub partial: bool,
     pub message: String,
@@ -1384,8 +1384,8 @@ pub fn stack_views(state: &AppState, app: &AppType) -> Result<StackView, String>
 
 /// [`stack_views`] 再加上 Codex 客户端是否可能缓存旧登录或模型列表（要读进程表，放到阻塞线程
 /// 池里）。账号与目录检测都不分模式：切换账号、直连↔路由切换也会让已启动的客户端拿着旧登录
-/// 或旧目录，同样要重启。路由那家自己管理目录时，重启也看不到 CC Switch 的目录，已经有
-/// `notice` 说明，不再查目录。没有目录时（直连、路由那家没配目录）照样查：之前在 CC Switch
+/// 或旧目录，同样要重启。路由那家自己管理目录时，重启也看不到 MultiClaude 的目录，已经有
+/// `notice` 说明，不再查目录。没有目录时（直连、路由那家没配目录）照样查：之前在 MultiClaude
 /// 的目录时启动的客户端还拿着它。
 pub async fn stack_view_with_clients(state: &AppState, app: &AppType) -> Result<StackView, String> {
     let mut view = stack_views(state, app)?;
@@ -1440,7 +1440,7 @@ fn codex_stack_notice_with_reasons(
 }
 
 /// Codex Stack 模式下聚合的模型被路由那家自己的模型目录挡住（`routeOwnsCatalog`，用户在提示
-/// 上点了才调）：去掉它行里指向别的文件的 `model_catalog_json`，按当前路由重写，改用 CC Switch
+/// 上点了才调）：去掉它行里指向别的文件的 `model_catalog_json`，按当前路由重写，改用 MultiClaude
 /// 生成的目录。返回之后还剩的提示。
 ///
 /// 先改行再写客户端：写失败时下一次重写按新的行投影，指针照样清掉。
@@ -1521,7 +1521,7 @@ pub async fn resync_route(state: &AppState, app: &AppType) -> Result<(), String>
     resync_route_locked(state, app).await
 }
 
-/// 后台检查（CC Switch 启动时和之后每 15 分钟）：Codex 官方做路由、发布了 Stack 模型时，
+/// 后台检查（MultiClaude 启动时和之后每 15 分钟）：Codex 官方做路由、发布了 Stack 模型时，
 /// 目标登录的官方模型缓存没有或过期了就刷新（一定联网）；客户端落后于缓存（列表刚变，
 /// 或者之前重写失败了）就重写客户端文件。
 pub async fn check_codex_official_models(state: &AppState) {
@@ -1672,7 +1672,7 @@ pub async fn startup(state: &AppState) {
     // 接上失败退回直连的应用可能已经把代理拉起来了。
     stop_server_if_unused(state).await;
     ensure_desktop_mapping_service(state).await;
-    // 记一次新启动的 Codex 会读到的目录：兜住启动时补完的操作和 CC Switch 没开时的外部修改。
+    // 记一次新启动的 Codex 会读到的目录：兜住启动时补完的操作和 MultiClaude 没开时的外部修改。
     codex_client_catalog::observe(&DeviceStore::for_device());
 }
 
@@ -1812,7 +1812,7 @@ pub fn direct_provider_id(state: &AppState, app: &AppType) -> Result<Option<Stri
 pub struct AppModeView {
     /// `direct` / `route` / `stack`
     pub mode: &'static str,
-    /// 客户端文件指着代理（CC Switch 运行时为真；退出时分离）
+    /// 客户端文件指着代理（MultiClaude 运行时为真；退出时分离）
     pub attached: bool,
     pub route_provider_id: Option<String>,
     pub direct_provider_id: Option<String>,
@@ -2754,7 +2754,7 @@ mod mode_tests {
             .expect("enter again");
         assert_eq!(in_use(&state, &AppType::Claude).as_deref(), Some("b"));
 
-        // 退出 CC Switch 再启动：分离时写回直连，启动时按保存的路由接上。
+        // 退出 MultiClaude 再启动：分离时写回直连，启动时按保存的路由接上。
         detach_all(&state).await;
         assert!(!mode(&AppType::Claude).attached);
         assert_eq!(settings()["env"]["ANTHROPIC_BASE_URL"], "https://a.example");
@@ -3568,7 +3568,7 @@ command = "fs-server"
     }
 
     /// 行里自己指定的模型目录指针跟着这一家走：切走时删掉，切到生成了目录的那家就换成
-    /// CC Switch 自己的指针；代理契约带进来的，退出代理时同样删掉。用户直接写进 live 的
+    /// MultiClaude 自己的指针；代理契约带进来的，退出代理时同样删掉。用户直接写进 live 的
     /// 指针一直留着。
     #[tokio::test]
     #[serial]
@@ -3607,7 +3607,7 @@ command = "fs-server"
         exit(&state, &AppType::Codex).await.expect("exit");
         assert_eq!(pointer(), None, "{}", codex_text());
 
-        // 指针是关键字段：手写进 live 的值不保留，有目录时换成 CC Switch 的，没有就删。
+        // 指针是关键字段：手写进 live 的值不保留，有目录时换成 MultiClaude 的，没有就删。
         let with_user = format!("model_catalog_json = \"/work/mine.json\"\n{}", codex_text());
         fs::write(codex_config_path(), with_user).unwrap();
         ProviderService::switch(&state, AppType::Codex, "b").expect("to b");
@@ -6678,7 +6678,7 @@ model_provider = "c"
         assert_eq!(stale_clients_of(&state).await, None);
     }
 
-    /// 路由那家自己管理模型目录时（行的指针指向别处），路由模式的视图同样不查：CC Switch 的
+    /// 路由那家自己管理模型目录时（行的指针指向别处），路由模式的视图同样不查：MultiClaude 的
     /// 目录不在线上，重启也看不到它。
     #[tokio::test]
     #[serial]
@@ -6753,7 +6753,7 @@ model_provider = "c"
         );
     }
 
-    /// 提示上的「改用 CC Switch 的模型目录」：去掉路由那家行里的指针，契约带进 live 的那份
+    /// 提示上的「改用 MultiClaude 的模型目录」：去掉路由那家行里的指针，契约带进 live 的那份
     /// 跟着删掉，换上合并目录，不再提示。行里其余内容原样。
     #[tokio::test]
     #[serial]
@@ -6801,7 +6801,7 @@ model_provider = "c"
     }
 
     /// 编辑器里的模型目录指针归这张卡：live 里手写的不显示、不收进行，保存当前卡时清掉；用户在
-    /// 编辑器里写的外来指针存进行、随卡写入；指向 CC Switch 目录的指针不存（由写入方决定）。
+    /// 编辑器里写的外来指针存进行、随卡写入；指向 MultiClaude 目录的指针不存（由写入方决定）。
     #[tokio::test]
     #[serial]
     async fn codex_editor_catalog_pointer_belongs_to_the_card() {
@@ -6870,7 +6870,7 @@ model_provider = "c"
         assert!(!row_config("a").contains("model_catalog_json"));
         assert_eq!(pointer(), None, "{}", codex_text());
 
-        // 手写 CC Switch 自己的目录：a 没有模型映射，不生成目录，行里不存、live 里也不写。
+        // 手写 MultiClaude 自己的目录：a 没有模型映射，不生成目录，行里不存、live 里也不写。
         let ours = crate::codex_config::get_codex_model_catalog_path()
             .display()
             .to_string();

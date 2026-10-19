@@ -7,7 +7,7 @@
 //! **登录暂存。**保留登录开关关闭时，切到第三方要删掉 `auth.json`（兼容期维持 v3.20.1
 //! 的行为），切回官方卡时再还回去。以前靠切走时把 live 回填进官方卡的行，现在不回填：
 //! 回填会让 token 随云同步走，而且行里的快照不会跟着 Codex CLI 轮换，过几天就作废。
-//! 改为把 CC Switch 删掉或覆盖掉的那份原生登录存在这台设备上
+//! 改为把 MultiClaude 删掉或覆盖掉的那份原生登录存在这台设备上
 //! （`~/.cc-switch/codex-login-stash.json`，0600，不同步），切回官方卡时原样还回去。
 //! 托管账号的登录在账号管理器里，不进暂存。
 //!
@@ -175,7 +175,7 @@ fn is_api_key_credential(auth: &Value) -> bool {
 }
 
 /// 旧版切到第三方时写进 `auth.json` 的 Key（只有 `OPENAI_API_KEY`，而且就是某个第三方
-/// 供应商的 Key）。能证明是 CC Switch 写的才算残留；用户自己 `codex login --api-key`
+/// 供应商的 Key）。能证明是 MultiClaude 写的才算残留；用户自己 `codex login --api-key`
 /// 登录的 Key 不算。
 fn is_residue(auth: &Value, third_party_keys: &[String]) -> bool {
     codex_live_auth_is_stale_third_party_residue(auth)

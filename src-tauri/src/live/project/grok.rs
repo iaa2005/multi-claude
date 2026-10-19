@@ -1,4 +1,4 @@
-//! Grok Build 的投影：供应商行 → `config.toml` 的 `models.default` 和 CC Switch 写的那张
+//! Grok Build 的投影：供应商行 → `config.toml` 的 `models.default` 和 MultiClaude 写的那张
 //! `[model."<名称>"]` 整表。
 //!
 //! 整表指表里的所有键（`model`、`base_url`、`api_key` / `env_key`，以及
@@ -212,7 +212,7 @@ pub struct GrokConfigPatch {
     pub target: Option<(String, Table)>,
     /// 上次写入记录里的表。目标自己的表不删，由整表替换覆盖。
     pub retired: Vec<String>,
-    /// 这个值作为 `api_key` 的表都是 CC Switch 的代理契约留下的，一律删（目标自己的
+    /// 这个值作为 `api_key` 的表都是 MultiClaude 的代理契约留下的，一律删（目标自己的
     /// 表除外）。
     pub placeholder: Option<String>,
 }
@@ -314,7 +314,7 @@ impl GrokConfigPatch {
     /// 用内置的 `grok-4.6`，请求却发到默认模型表的地址，第三方上游不认这个模型名，标题生成
     /// 就失败（#7003）。
     ///
-    /// 没设、或者指向 CC Switch 写的表（目标表、写入记录里的、这次删掉的）时跟着目标走：有
+    /// 没设、或者指向 MultiClaude 写的表（目标表、写入记录里的、这次删掉的）时跟着目标走：有
     /// 目标就指向它，切到官方就删掉。指向用户自己的表或内置模型时不动。
     fn follow_session_summary(
         &self,

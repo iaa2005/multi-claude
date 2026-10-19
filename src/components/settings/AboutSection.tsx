@@ -176,7 +176,7 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
       <div className="flex flex-wrap items-center gap-4 px-5 py-4">
         <img src={appIcon} alt="" className="h-10 w-10 shrink-0" />
         <div className="min-w-0 flex-1">
-          <div className="text-title text-fg-1">CC Switch</div>
+          <div className="text-title text-fg-1">MultiClaude</div>
           <div className="flex flex-wrap items-center gap-2 text-caption text-fg-2">
             {isLoadingVersion ? (
               <Loader2 className="h-3 w-3 animate-spin" />

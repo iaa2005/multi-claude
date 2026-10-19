@@ -3,7 +3,7 @@ import { providerPresets } from "@/config/claudeProviderPresets";
 import { isOAuthProviderType } from "@/config/constants";
 import fields from "./claudeKeyFields.json";
 
-// 切换时 CC Switch 只写关键字段（地址、凭据、模型名、协议）和供应商独有字段（上游
+// 切换时 MultiClaude 只写关键字段（地址、凭据、模型名、协议）和供应商独有字段（上游
 // 兼容开关、窗口值），预设里的其他键永远不会生效，只会显示在编辑器里误导用户。
 // 清单是后端 `live::floor` 的镜像，由 Rust 测试保证两边一致。
 

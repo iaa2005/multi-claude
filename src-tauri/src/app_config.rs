@@ -54,7 +54,7 @@ impl McpApps {
             AppType::Hermes => self.hermes = enabled,
             AppType::Mcode => self.mcode = enabled,
             AppType::Pi => self.pi = enabled,
-            AppType::ClaudeDesktop | AppType::ClaudeScience => {} // neither 3P client uses CC Switch MCP here
+            AppType::ClaudeDesktop | AppType::ClaudeScience => {} // neither 3P client uses MultiClaude MCP here
         }
     }
 
@@ -151,7 +151,7 @@ impl SkillApps {
             AppType::Pi => self.pi = enabled,
             AppType::Mcode => self.mcode = enabled,
             AppType::OpenClaw => {} // OpenClaw doesn't support Skills, ignore
-            AppType::ClaudeDesktop | AppType::ClaudeScience => {} // neither 3P client uses CC Switch skill sync
+            AppType::ClaudeDesktop | AppType::ClaudeScience => {} // neither 3P client uses MultiClaude skill sync
         }
     }
 
@@ -256,7 +256,7 @@ pub struct InstalledSkill {
     pub updated_at: i64,
 }
 
-/// 未管理的 Skill（在应用目录中发现但未被 CC Switch 管理）
+/// 未管理的 Skill（在应用目录中发现但未被 MultiClaude 管理）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnmanagedSkill {

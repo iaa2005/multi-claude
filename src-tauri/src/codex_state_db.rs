@@ -38,7 +38,7 @@ pub(crate) fn codex_state_db_paths(config_dir: &Path, config_text: &str) -> Vec<
     paths
 }
 
-/// Whether CC Switch can open this state DB with SQLite locking intact.
+/// Whether MultiClaude can open this state DB with SQLite locking intact.
 ///
 /// Windows reaches a WSL distro's files through the `\\wsl$` /
 /// `\\wsl.localhost` 9P redirector, which has no byte-range locks: every open

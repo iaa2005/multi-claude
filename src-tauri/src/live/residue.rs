@@ -5,7 +5,7 @@
 //! - 旧版在写入时注入的默认值（早期的 Kimi、Codex OAuth 行里没有这些键）；
 //! - 兼容期内旧 CLI、Lite、旧 GUI 整份写入的值，新版记录的上一家未必是它们切到的那家。
 //!
-//! 这些值比下一家的真实窗口大，留着就会超窗。这里冻结的是 CC Switch 自己下发过的
+//! 这些值比下一家的真实窗口大，留着就会超窗。这里冻结的是 MultiClaude 自己下发过的
 //! （键，值）对：重构时刻的预设值和注入常量。每次直连投影时删掉 live 里精确命中的项，
 //! 目标供应商自己要写的键除外（由目标值原位覆盖）。
 //!
@@ -13,7 +13,7 @@
 
 use serde_json::Value;
 
-/// Claude Code `env` 里的残留（键，CC Switch 下发过的值）。
+/// Claude Code `env` 里的残留（键，MultiClaude 下发过的值）。
 pub const CLAUDE_RESIDUE_ENV: &[(&str, &[&str])] = &[
     (
         "CLAUDE_CODE_MAX_CONTEXT_TOKENS",

@@ -1,7 +1,7 @@
 //! Codex 会话压缩开关：`config.toml` 的 `[features] local_thread_store_compression`。
 //!
 //! 开启后 Codex 每次启动在后台把 7 天没动过的 rollout 压成 `.jsonl.zst`
-//! （见 `codex_rollout_file`），CC Switch 的会话管理与用量统计照常读取。
+//! （见 `codex_rollout_file`），MultiClaude 的会话管理与用量统计照常读取。
 //! 开关状态以 `config.toml` 为准，不另存设置；写入经写入引擎（首写备份、崩溃恢复）。
 
 use toml_edit::value;

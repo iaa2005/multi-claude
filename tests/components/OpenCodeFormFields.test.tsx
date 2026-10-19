@@ -430,7 +430,7 @@ describe("OpenCodeFormFields", () => {
       { id: "old-model", ownedBy: null },
     ]);
     const { props, rerender } = renderOpenCodeForm({
-      headers: { "X-Title": "CC Switch" },
+      headers: { "X-Title": "MultiClaude" },
     });
     fireEvent.click(screen.getByRole("button", { name: FETCH }));
     const dialog = await screen.findByRole("dialog");
@@ -487,7 +487,7 @@ describe("OpenCodeFormFields", () => {
     renderOpenCodeForm({
       headers: {
         "HTTP-Referer": "https://cc-switch.app",
-        "X-Title": "CC Switch",
+        "X-Title": "MultiClaude",
       },
     });
 
@@ -496,17 +496,17 @@ describe("OpenCodeFormFields", () => {
       screen.getByDisplayValue("https://cc-switch.app"),
     ).toBeInTheDocument();
     expect(screen.getByDisplayValue("X-Title")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("CC Switch")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("MultiClaude")).toBeInTheDocument();
   });
 
   it("updates provider headers", () => {
     const onHeadersChange = vi.fn();
     renderOpenCodeForm({
-      headers: { "X-Title": "CC Switch" },
+      headers: { "X-Title": "MultiClaude" },
       onHeadersChange,
     });
 
-    fireEvent.change(screen.getByDisplayValue("CC Switch"), {
+    fireEvent.change(screen.getByDisplayValue("MultiClaude"), {
       target: { value: "OpenCode" },
     });
 
@@ -537,7 +537,7 @@ describe("OpenCodeFormFields", () => {
   it("removes provider headers", () => {
     const onHeadersChange = vi.fn();
     renderOpenCodeForm({
-      headers: { "X-Title": "CC Switch" },
+      headers: { "X-Title": "MultiClaude" },
       onHeadersChange,
     });
 
@@ -564,7 +564,7 @@ describe("OpenCodeFormFields", () => {
   it("restores an existing header name when it is cleared", () => {
     const onHeadersChange = vi.fn();
     renderOpenCodeForm({
-      headers: { "X-Title": "CC Switch" },
+      headers: { "X-Title": "MultiClaude" },
       onHeadersChange,
     });
 

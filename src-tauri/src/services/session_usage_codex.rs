@@ -4336,7 +4336,7 @@ mod tests {
         write_jsonl(&plain, &lines);
         assert_eq!(sync_test_file(&db, &plain, &[&plain])?.imported, 1);
 
-        // CC Switch 没赶上第二条用量，文件就被压缩了
+        // MultiClaude 没赶上第二条用量，文件就被压缩了
         lines.push(token_count(200, 100, 20));
         write_jsonl(&plain, &lines);
         let compressed = compress_rollout(&plain);

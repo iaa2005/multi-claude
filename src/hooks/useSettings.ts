@@ -28,7 +28,7 @@ export interface UseSettingsResult {
   isSaving: boolean;
   isPortable: boolean;
   appConfigDir?: string;
-  /** 已保存的 CC Switch 数据目录（没覆盖时为空），用来判断有没有改动没保存 */
+  /** 已保存的 MultiClaude 数据目录（没覆盖时为空），用来判断有没有改动没保存 */
   initialAppConfigDir?: string;
   resolvedDirs: ResolvedDirectories;
   requiresRestart: boolean;

@@ -186,7 +186,7 @@ impl McpService {
                 mcp::sync_single_server_to_claude(&Default::default(), &server.id, &server.server)?;
             }
             AppType::ClaudeDesktop | AppType::ClaudeScience => {
-                log::debug!("3P clients do not use CC Switch MCP sync, skipping");
+                log::debug!("3P clients do not use MultiClaude MCP sync, skipping");
             }
             AppType::Codex => {
                 // Codex uses TOML format, must use the correct function
@@ -243,7 +243,7 @@ impl McpService {
         match app {
             AppType::Claude => mcp::remove_server_from_claude(id)?,
             AppType::ClaudeDesktop | AppType::ClaudeScience => {
-                log::debug!("3P clients do not use CC Switch MCP sync, skipping");
+                log::debug!("3P clients do not use MultiClaude MCP sync, skipping");
             }
             AppType::Codex => mcp::remove_server_from_codex(id)?,
             AppType::Gemini => mcp::remove_server_from_gemini(id)?,
@@ -299,7 +299,7 @@ impl McpService {
         Self::project_servers_to_app(state, &servers, app)
     }
 
-    /// 由 CC Switch 管理 MCP 的应用（Claude Desktop、OpenClaw 不支持）
+    /// 由 MultiClaude 管理 MCP 的应用（Claude Desktop、OpenClaw 不支持）
     pub fn live_sync_apps() -> Vec<AppType> {
         AppType::all()
             .filter(|app| !matches!(app, AppType::OpenClaw | AppType::ClaudeDesktop))
@@ -318,7 +318,7 @@ impl McpService {
             let app = <AppType as std::str::FromStr>::from_str(raw)?;
             if !managed.contains(&app) {
                 return Err(AppError::Message(format!(
-                    "{} 不支持由 CC Switch 管理 MCP",
+                    "{} 不支持由 MultiClaude 管理 MCP",
                     app.as_str()
                 )));
             }

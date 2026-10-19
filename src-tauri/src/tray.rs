@@ -1,8 +1,8 @@
 //! 托盘菜单（v7）
 //!
-//! 结构：问题区（出问题才有）→ 反馈行（托盘里刚做完要重启才生效的操作）→ 打开 CC Switch →
+//! 结构：问题区（出问题才有）→ 反馈行（托盘里刚做完要重启才生效的操作）→ 打开 MultiClaude →
 //! 切换式应用的子菜单（Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build；在「应用」页
-//! 隐藏的不列）→ 轻量模式 → 打开官方网站 / 退出 CC Switch。累加式应用（OpenCode / OpenClaw /
+//! 隐藏的不列）→ 轻量模式 → 打开官方网站 / 退出 MultiClaude。累加式应用（OpenCode / OpenClaw /
 //! Hermes / Pi / MiniMax Code）不进托盘；托盘里不切模式、不启停路由服务。
 //!
 //! 分三层：`collect_*` 从数据库和设备状态读出快照，`build_menu_model` 把快照变成纯数据的菜单
@@ -190,11 +190,11 @@ impl TrayTexts {
     pub fn from_language(language: &str) -> Self {
         match language {
             "en" => Self {
-                show_main: "Open CC Switch",
+                show_main: "Open MultiClaude",
                 open_website: "Open official website",
                 lightweight_mode: "Lightweight mode",
-                quit: "Quit CC Switch",
-                quit_stops_routing: "Quit CC Switch (stops the routing service)",
+                quit: "Quit MultiClaude",
+                quit_stops_routing: "Quit MultiClaude (stops the routing service)",
                 projects_label: "Projects",
                 no_project_label: "No project",
                 header_direct: "Direct",
@@ -217,10 +217,10 @@ impl TrayTexts {
                 problem_attach_failed:
                     "{app}: {mode} couldn't reconnect at startup; back to direct",
                 problem_switch_failed: "{app} didn't switch: {reason}",
-                problem_more: "{count} more issues — open CC Switch to see them",
+                problem_more: "{count} more issues — open MultiClaude to see them",
                 desktop_unavailable:
                     "The routing service isn't running; {name} is unavailable for now",
-                tooltip_problem: "CC Switch · Needs attention: {problem}",
+                tooltip_problem: "MultiClaude · Needs attention: {problem}",
                 feedback_switched: "{app} switched to {name}. Restart {app} to apply",
                 feedback_stack_default:
                     "{app}'s default provider is now {name}. Restart {app} to apply",
@@ -250,15 +250,71 @@ impl TrayTexts {
                 date_format: "%b %-d",
                 quota_used: false,
             },
+            // Russian: starts from English like Turkish, so a tray item added later
+            // shows in English until it is translated.
+            "ru" => {
+                let mut texts = Self::from_language("en");
+                texts.show_main = "Открыть MultiClaude";
+                texts.open_website = "Открыть сайт";
+                texts.lightweight_mode = "Облегчённый режим";
+                texts.quit = "Выйти из MultiClaude";
+                texts.quit_stops_routing = "Выйти из MultiClaude (служба маршрутизации остановится)";
+                texts.projects_label = "Проекты";
+                texts.no_project_label = "Без проекта";
+                texts.header_direct = "Напрямую";
+                texts.header_route = "Маршрутизация";
+                texts.header_failover = "Маршрутизация · Резервирование включено";
+                texts.header_stack = "Агрегация · Провайдер по умолчанию";
+                texts.header_stack_default = "Агрегация · По умолчанию: {name}";
+                texts.failover_note = "Выбирается из очереди автоматически; изменить можно на странице приложения";
+                texts.mode_route = "Маршрутизация";
+                texts.mode_stack = "Агрегация";
+                texts.mode_mapping = "Сопоставление моделей";
+                texts.needs_routing_suffix = " (нужна маршрутизация)…";
+                texts.official_blocked_suffix = " (официальные подписки не работают через маршрутизацию)";
+                texts.mapping_suffix = " · Сопоставление моделей";
+                texts.open_app_page = "Открыть страницу {app}";
+                texts.add_provider = "Добавить провайдера…";
+                texts.almost_out = "почти исчерпано";
+                texts.needs_attention = "требует внимания";
+                texts.problem_service_down = "Служба маршрутизации не запущена (порт {port})";
+                texts.problem_attach_failed = "{app}: не удалось снова подключить {mode} при запуске; включён прямой режим";
+                texts.problem_switch_failed = "{app} не удалось переключить: {reason}";
+                texts.problem_more = "Ещё проблем: {count} — откройте MultiClaude, чтобы посмотреть";
+                texts.desktop_unavailable = "Служба маршрутизации не запущена; {name} сейчас недоступен";
+                texts.tooltip_problem = "MultiClaude · Требует внимания: {problem}";
+                texts.feedback_switched = "{app} переключён на {name}. Перезапустите {app}, чтобы применить";
+                texts.feedback_stack_default = "Провайдер по умолчанию для {app} теперь {name}. Перезапустите {app}, чтобы применить";
+                texts.feedback_profile = "Проект {name} применён к {app}";
+                texts.tier_five_hour = "5 часов";
+                texts.tier_weekly = "Неделя";
+                texts.tier_monthly = "Месяц";
+                texts.tier_thirty_day = "30 дней";
+                texts.tier_credits = "Кредиты";
+                texts.tier_left = "{label}: осталось {value}%";
+                texts.tier_used = "{label}: использовано {value}%";
+                texts.tier_used_up = "{label}: исчерпано";
+                texts.balance = "Баланс {value}";
+                texts.balance_used_up = "Баланс исчерпан";
+                texts.plan_expired = "Срок тарифа истёк";
+                texts.used_amount = "Использовано: {value}";
+                texts.quota_failed = "Не удалось получить квоту";
+                texts.quota_failed_login_expired = "Не удалось получить квоту: вход истёк";
+                texts.quota_failed_token_refresh_pending = "Не удалось получить квоту: ждём обновления токена";
+                texts.reset_on_date = "Квота {label} сбросится {when}";
+                texts.reset_at_time = "Квота {label} сбросится в {when}";
+                texts.date_format = "%d.%m";
+                texts
+            }
             // 土耳其语是社区翻译：从英文起步再覆盖已翻译的项，之后新增的托盘项
             // 在有人翻译前显示英文，而不是让所有改托盘的提交都必须补土耳其语。
             "tr" => {
                 let mut texts = Self::from_language("en");
-                texts.show_main = "CC Switch'i aç";
+                texts.show_main = "MultiClaude'ı aç";
                 texts.open_website = "Resmî web sitesini aç";
                 texts.lightweight_mode = "Hafif mod";
-                texts.quit = "CC Switch'ten çık";
-                texts.quit_stops_routing = "CC Switch'ten çık (yönlendirme hizmeti durur)";
+                texts.quit = "MultiClaude'dan çık";
+                texts.quit_stops_routing = "MultiClaude'dan çık (yönlendirme hizmeti durur)";
                 texts.projects_label = "Projeler";
                 texts.no_project_label = "Proje yok";
                 texts.header_direct = "Doğrudan";
@@ -280,9 +336,9 @@ impl TrayTexts {
                 texts.problem_service_down = "Yönlendirme hizmeti çalışmıyor (port {port})";
                 texts.problem_attach_failed = "{app}: {mode} başlangıçta yeniden bağlanamadı; doğrudan bağlantıya dönüldü";
                 texts.problem_switch_failed = "{app} geçiş yapamadı: {reason}";
-                texts.problem_more = "{count} sorun daha var — görmek için CC Switch'i açın";
+                texts.problem_more = "{count} sorun daha var — görmek için MultiClaude'ı açın";
                 texts.desktop_unavailable = "Yönlendirme hizmeti çalışmıyor; {name} şu anda kullanılamıyor";
-                texts.tooltip_problem = "CC Switch · İlgilenilmesi gerekiyor: {problem}";
+                texts.tooltip_problem = "MultiClaude · İlgilenilmesi gerekiyor: {problem}";
                 texts.feedback_switched = "{app}, {name} sağlayıcısına geçti. Uygulamak için {app} uygulamasını yeniden başlatın";
                 texts.feedback_stack_default = "{app} için varsayılan sağlayıcı artık {name}. Uygulamak için {app} uygulamasını yeniden başlatın";
                 texts.feedback_profile = "{name} projesi {app} uygulamasına uygulandı";
@@ -312,11 +368,11 @@ impl TrayTexts {
                 texts
             }
             "ja" => Self {
-                show_main: "CC Switch を開く",
+                show_main: "MultiClaude を開く",
                 open_website: "公式サイトを開く",
                 lightweight_mode: "軽量モード",
-                quit: "CC Switch を終了",
-                quit_stops_routing: "CC Switch を終了（ルーティングサービスが停止します）",
+                quit: "MultiClaude を終了",
+                quit_stops_routing: "MultiClaude を終了（ルーティングサービスが停止します）",
                 projects_label: "プロジェクト",
                 no_project_label: "プロジェクトを使用しない",
                 header_direct: "直接接続",
@@ -339,10 +395,10 @@ impl TrayTexts {
                 problem_attach_failed: "{app}：前回の{mode}に再接続できず、直接接続に戻りました",
                 problem_switch_failed: "{app} を切り替えられませんでした：{reason}",
                 problem_more:
-                    "ほかに {count} 件の問題があります。CC Switch を開いて確認してください",
+                    "ほかに {count} 件の問題があります。MultiClaude を開いて確認してください",
                 desktop_unavailable:
                     "ルーティングサービスが動いていないため、{name} は今使えません",
-                tooltip_problem: "CC Switch · 対応が必要：{problem}",
+                tooltip_problem: "MultiClaude · 対応が必要：{problem}",
                 feedback_switched:
                     "{app} を {name} に切り替えました。反映するには {app} を再起動してください",
                 feedback_stack_default: "{app} のデフォルトのプロバイダーを {name} に変更しました。反映するには {app} を再起動してください",
@@ -373,11 +429,11 @@ impl TrayTexts {
                 quota_used: false,
             },
             "zh-TW" => Self {
-                show_main: "開啟 CC Switch",
+                show_main: "開啟 MultiClaude",
                 open_website: "開啟官方網站",
                 lightweight_mode: "輕量模式",
-                quit: "退出 CC Switch",
-                quit_stops_routing: "退出 CC Switch（路由服務會停止）",
+                quit: "退出 MultiClaude",
+                quit_stops_routing: "退出 MultiClaude（路由服務會停止）",
                 projects_label: "專案",
                 no_project_label: "不使用專案",
                 header_direct: "直連",
@@ -399,9 +455,9 @@ impl TrayTexts {
                 problem_service_down: "路由服務沒在執行（連接埠 {port}）",
                 problem_attach_failed: "{app}：上次的{mode}沒能接上，已回到直連",
                 problem_switch_failed: "{app} 沒切換成功：{reason}",
-                problem_more: "還有 {count} 個問題，開啟 CC Switch 查看",
+                problem_more: "還有 {count} 個問題，開啟 MultiClaude 查看",
                 desktop_unavailable: "路由服務沒在執行，{name} 暫時無法使用",
-                tooltip_problem: "CC Switch · 需要處理：{problem}",
+                tooltip_problem: "MultiClaude · 需要處理：{problem}",
                 feedback_switched: "{app} 已切換到 {name}，重新啟動 {app} 後生效",
                 feedback_stack_default: "{app} 的預設供應商改為 {name}，重新啟動 {app} 後生效",
                 feedback_profile: "已把專案「{name}」套用到 {app}",
@@ -431,11 +487,11 @@ impl TrayTexts {
                 quota_used: false,
             },
             _ => Self {
-                show_main: "打开 CC Switch",
+                show_main: "打开 MultiClaude",
                 open_website: "打开官方网站",
                 lightweight_mode: "轻量模式",
-                quit: "退出 CC Switch",
-                quit_stops_routing: "退出 CC Switch（路由服务会停止）",
+                quit: "退出 MultiClaude",
+                quit_stops_routing: "退出 MultiClaude（路由服务会停止）",
                 projects_label: "项目",
                 no_project_label: "不使用项目",
                 header_direct: "直连",
@@ -457,9 +513,9 @@ impl TrayTexts {
                 problem_service_down: "路由服务没在运行（端口 {port}）",
                 problem_attach_failed: "{app}：上次的{mode}没能接上，已回到直连",
                 problem_switch_failed: "{app} 没切换成功：{reason}",
-                problem_more: "还有 {count} 个问题，打开 CC Switch 查看",
+                problem_more: "还有 {count} 个问题，打开 MultiClaude 查看",
                 desktop_unavailable: "路由服务没在运行，{name} 暂时不可用",
-                tooltip_problem: "CC Switch · 需要处理：{problem}",
+                tooltip_problem: "MultiClaude · 需要处理：{problem}",
                 feedback_switched: "{app} 已切换到 {name}，重启 {app} 后生效",
                 feedback_stack_default: "{app} 的默认供应商改为 {name}，重启 {app} 后生效",
                 feedback_profile: "已把项目「{name}」用到 {app}",
@@ -1961,7 +2017,7 @@ fn build_menu_model(
         menu.push(TrayEntry::Separator);
     }
 
-    // 窗口找不回来时托盘是唯一入口，「打开 CC Switch」一直放在最上面。
+    // 窗口找不回来时托盘是唯一入口，「打开 MultiClaude」一直放在最上面。
     menu.push(TrayEntry::item("show_main", texts.show_main));
     menu.push(TrayEntry::Separator);
 
@@ -2213,10 +2269,10 @@ fn icon_with_problem_dot(icon: &Image<'_>, template: bool) -> Image<'static> {
     Image::new_owned(rgba, width, height)
 }
 
-/// 悬停提示：平时 `CC Switch`，出问题时 `CC Switch · 需要处理：<问题区第一条>`。额度不算问题。
+/// 悬停提示：平时 `MultiClaude`，出问题时 `MultiClaude · 需要处理：<问题区第一条>`。额度不算问题。
 fn tray_tooltip(texts: &TrayTexts, problems: &[TrayProblem]) -> String {
     match problems.first() {
-        None => "CC Switch".to_string(),
+        None => "MultiClaude".to_string(),
         Some(problem) => truncate_chars(
             &fill(
                 texts.tooltip_problem,
@@ -3748,7 +3804,7 @@ mod tests {
         assert_eq!(
             texts_of(&menu),
             [
-                "打开 CC Switch",
+                "打开 MultiClaude",
                 "---",
                 "Claude Code · Kimi For Coding",
                 "Grok Build · 添加供应商…",
@@ -3756,7 +3812,7 @@ mod tests {
                 "轻量模式",
                 "---",
                 "打开官方网站",
-                "退出 CC Switch",
+                "退出 MultiClaude",
             ]
         );
         assert!(matches!(&menu[3], TrayEntry::Item { id, .. } if id == "nav:add:grokbuild"));
@@ -3939,7 +3995,7 @@ mod tests {
             matches!(&menu[0], TrayEntry::Item { id, enabled: true, .. } if id == "nav:settings:routing")
         );
         assert_eq!(text_of(&menu[1]), "---");
-        assert_eq!(text_of(&menu[2]), "打开 CC Switch");
+        assert_eq!(text_of(&menu[2]), "打开 MultiClaude");
         assert_eq!(
             text_of(&menu[4]),
             "Claude Desktop · 模型映射 · Kimi For Coding · 需要处理"
@@ -3970,7 +4026,7 @@ mod tests {
             [
                 "路由服务没在运行（端口 15721）",
                 "Claude Code：上次的路由没能接上，已回到直连",
-                "还有 1 个问题，打开 CC Switch 查看",
+                "还有 1 个问题，打开 MultiClaude 查看",
                 "---"
             ]
         );
@@ -4114,11 +4170,11 @@ mod tests {
                 other => panic!("last entry is not quit: {other:?}"),
             }
         };
-        assert_eq!(quit_text(&zh(), false), "退出 CC Switch");
-        assert_eq!(quit_text(&zh(), true), "退出 CC Switch（路由服务会停止）");
+        assert_eq!(quit_text(&zh(), false), "退出 MultiClaude");
+        assert_eq!(quit_text(&zh(), true), "退出 MultiClaude（路由服务会停止）");
         assert_eq!(
             quit_text(&en(), true),
-            "Quit CC Switch (stops the routing service)"
+            "Quit MultiClaude (stops the routing service)"
         );
         for language in ["zh", "zh-TW", "en", "ja", "tr"] {
             let texts = TrayTexts::from_language(language);
@@ -4144,7 +4200,7 @@ mod tests {
 
     #[test]
     fn tooltip_names_the_first_problem_and_is_plain_otherwise() {
-        assert_eq!(tray_tooltip(&zh(), &[]), "CC Switch");
+        assert_eq!(tray_tooltip(&zh(), &[]), "MultiClaude");
         let problems = [
             TrayProblem::ServiceDown { port: 15721 },
             TrayProblem::SwitchFailed {
@@ -4154,7 +4210,7 @@ mod tests {
         ];
         assert_eq!(
             tray_tooltip(&zh(), &problems),
-            "CC Switch · 需要处理：路由服务没在运行（端口 15721）"
+            "MultiClaude · 需要处理：路由服务没在运行（端口 15721）"
         );
         let long = [TrayProblem::SwitchFailed {
             app: AppType::Codex,
@@ -4242,7 +4298,7 @@ mod tests {
                 "路由服务没在运行（端口 15721）",
                 "Codex 已切换到 DeepSeek，重启 Codex 后生效",
                 "---",
-                "打开 CC Switch",
+                "打开 MultiClaude",
             ]
         );
         assert!(matches!(&menu[1], TrayEntry::Item { enabled: false, .. }));
@@ -4260,7 +4316,7 @@ mod tests {
             [
                 "Codex 的默认供应商改为 Kimi For Coding，重启 Codex 后生效",
                 "---",
-                "打开 CC Switch",
+                "打开 MultiClaude",
             ]
         );
         assert_eq!(

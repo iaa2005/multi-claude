@@ -296,7 +296,7 @@ pub(crate) fn predicted_official_login(
 }
 
 /// 操作之后 Codex 实际会用的登录，按 `cli_auth_credentials_store`：file 看操作之后的
-/// `auth.json`；keyring 看系统钥匙串（CC Switch 不改它）；auto 钥匙串里有就用它，确定
+/// `auth.json`；keyring 看系统钥匙串（MultiClaude 不改它）；auto 钥匙串里有就用它，确定
 /// 没有才同 file（读不出钥匙串时 Codex 可能用着另一个登录，`auth.json` 不能顶替）；
 /// ephemeral 和认不出的没有。`keychain` 只在要看钥匙串时调用。
 fn login_after(
@@ -464,7 +464,7 @@ fn row_facts(db: &Database) -> Result<RowFacts, AppError> {
                 .and_then(Item::as_str)
                 .map(|url| url.trim().to_string())
         };
-        // 旧版整份写入时，路由表用的是行自己的 id（custom 是 CC Switch 现在写的，不算）。
+        // 旧版整份写入时，路由表用的是行自己的 id（custom 是 MultiClaude 现在写的，不算）。
         let selector = doc
             .get("model_provider")
             .and_then(Item::as_str)

@@ -705,7 +705,7 @@ pub(crate) enum CodexKeychainLogin {
     /// 确定没有，或者内容不是 JSON（Codex 自己也读不了，auto 模式同样退回 `auth.json`）。
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Missing,
-    /// 读不出来：不是 macOS（Windows、Linux 的凭据库 CC Switch 读不了），或者 macOS 上
+    /// 读不出来：不是 macOS（Windows、Linux 的凭据库 MultiClaude 读不了），或者 macOS 上
     /// 访问被拒。Codex 看到的可能是另一个登录，不能拿 `auth.json` 顶替。
     Unknown,
 }

@@ -171,7 +171,7 @@ pub async fn acknowledge_codex_stale_clients() -> Result<(), String> {
 }
 
 /// Stack 模型：把一家加入或移出名单（`enabled` 是目标值）。成功时返回客户端看不到或看不全
-/// Stack 模型的提示；失败时 `partial` 为真表示已部分写入，下次操作或重启 CC Switch 时补完。
+/// Stack 模型的提示；失败时 `partial` 为真表示已部分写入，下次操作或重启 MultiClaude 时补完。
 #[tauri::command]
 pub async fn set_proxy_stack_member(
     app_handle: tauri::AppHandle,
@@ -190,7 +190,7 @@ pub async fn set_proxy_stack_member(
     result
 }
 
-/// Codex 聚合的模型被别的模型目录挡住时，改用 CC Switch 生成的目录（去掉指向别的文件的
+/// Codex 聚合的模型被别的模型目录挡住时，改用 MultiClaude 生成的目录（去掉指向别的文件的
 /// `model_catalog_json`）。返回之后还剩的提示。
 #[tauri::command]
 pub async fn adopt_codex_stack_catalog(
