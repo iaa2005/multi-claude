@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { AppId } from "@/lib/api";
 import { providersApi } from "@/lib/api/providers";
+import { claudeScienceApi } from "@/lib/api/claudeScience";
 import type { ToolInstallationReport } from "@/lib/api/settings";
 import type { VisibleApps } from "@/types";
 import { DEFAULT_VISIBLE_APPS } from "@/config/appConfig";
@@ -78,11 +79,15 @@ const SOURCE_LABEL: Record<string, string> = {
   pip: "pip",
 };
 
-type Row = { kind: "tool"; tool: ToolName } | { kind: "desktop" };
+type Row =
+  | { kind: "tool"; tool: ToolName }
+  | { kind: "desktop" }
+  | { kind: "science" };
 
 const ROWS: Row[] = [
   { kind: "tool", tool: "claude" },
   { kind: "desktop" },
+  { kind: "science" },
   ...TOOL_NAMES.filter((tool) => tool !== "claude").map(
     (tool): Row => ({ kind: "tool", tool }),
   ),
@@ -159,6 +164,21 @@ export function AppsPage() {
     queryFn: () => providersApi.getClaudeDesktopStatus(),
     staleTime: 30_000,
   });
+  // Science installs and updates itself; the row only reports what its CLI says.
+  const { data: scienceStatus } = useQuery({
+    queryKey: ["claudeScienceStatus"],
+    queryFn: claudeScienceApi.status,
+    staleTime: 30_000,
+  });
+  const scienceVersion = !scienceStatus
+    ? ""
+    : !scienceStatus.installed
+      ? t("appsPage.scienceMissing")
+      : scienceStatus.running
+        ? t("appsPage.scienceRunning", {
+            version: scienceStatus.version ?? "?",
+          })
+        : t("appsPage.scienceStopped");
 
   const visibleApps: VisibleApps = {
     ...DEFAULT_VISIBLE_APPS,
@@ -312,7 +332,26 @@ export function AppsPage() {
 
           <div className="divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface">
             {ROWS.map((row) =>
-              row.kind === "desktop" ? (
+              row.kind === "science" ? (
+                <AppRow
+                  key="claude-science"
+                  app="claude-science"
+                  name={
+                    <span className="flex items-center gap-1">
+                      {APP_DISPLAY_NAME["claude-science"]}
+                      <HelpTip title={APP_DISPLAY_NAME["claude-science"]}>
+                        {t("appsPage.scienceHelp")}
+                      </HelpTip>
+                    </span>
+                  }
+                  version={
+                    <span className="text-caption text-fg-2">
+                      {scienceVersion}
+                    </span>
+                  }
+                  visibility={visibilitySwitch("claude-science")}
+                />
+              ) : row.kind === "desktop" ? (
                 <AppRow
                   key="claude-desktop"
                   app="claude-desktop"
