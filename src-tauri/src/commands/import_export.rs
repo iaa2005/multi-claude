@@ -276,3 +276,36 @@ mod tests {
         assert!(entered.load(Ordering::SeqCst));
     }
 }
+
+// ─── Import from CC Switch ──────────────────────────────────
+
+/// What `~/.cc-switch` holds that MultiClaude does not have yet.
+#[tauri::command]
+pub async fn legacy_import_preview(
+    state: State<'_, AppState>,
+) -> Result<crate::database::legacy_import::LegacyImportReport, String> {
+    let db = state.db.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.legacy_import_preview(&crate::database::legacy_import::legacy_dir())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+}
+
+/// Adds the missing data from `~/.cc-switch`, after a backup of the database.
+#[tauri::command]
+pub async fn legacy_import_apply(
+    state: State<'_, AppState>,
+) -> Result<crate::database::legacy_import::LegacyImportReport, String> {
+    let db = state.db.clone();
+    run_with_database_restore_lock(|| async move {
+        tauri::async_runtime::spawn_blocking(move || {
+            db.legacy_import_apply(&crate::database::legacy_import::legacy_dir())
+        })
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+    })
+    .await
+}

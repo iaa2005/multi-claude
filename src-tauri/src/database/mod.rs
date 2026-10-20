@@ -25,6 +25,7 @@
 
 pub(crate) mod backup;
 mod dao;
+pub(crate) mod legacy_import;
 mod migration;
 mod schema;
 
@@ -40,8 +41,7 @@ pub use dao::custom_icons::{CustomIconEntry, CUSTOM_ICONS_KEY};
 pub const DEFAULT_PROXY_PORT: u16 = 15723;
 pub(crate) use dao::providers_seed::{
     is_official_seed_id, CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID, CLAUDE_SCIENCE_OFFICIAL_PROVIDER_ID,
-    CODEX_OFFICIAL_PROVIDER_ID,
-    GROKBUILD_OFFICIAL_PROVIDER_ID,
+    CODEX_OFFICIAL_PROVIDER_ID, GROKBUILD_OFFICIAL_PROVIDER_ID,
 };
 pub(crate) use dao::proxy::{PRICING_SOURCE_REQUEST, PRICING_SOURCE_RESPONSE};
 pub use dao::FailoverQueueItem;

@@ -4,6 +4,7 @@ mod auto_launch;
 mod claude_desktop_config;
 mod claude_mcp;
 mod claude_plugin;
+pub mod claude_science;
 mod codex_config;
 mod codex_history_migration;
 mod codex_rollout_file;
@@ -17,7 +18,6 @@ mod gemini_config;
 mod gemini_mcp;
 mod grok_config;
 pub mod hermes_config;
-pub mod claude_science;
 mod init_status;
 mod jsonc_document;
 mod lightweight;
@@ -1581,6 +1581,8 @@ pub fn run() {
             commands::open_file_dialog,
             commands::open_zip_file_dialog,
             commands::create_db_backup,
+            commands::legacy_import_preview,
+            commands::legacy_import_apply,
             commands::list_db_backups,
             commands::list_backup_locations,
             commands::delete_backup_location,

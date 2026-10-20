@@ -34,9 +34,15 @@ export function DesktopAccessBar({
     queryFn: () => providersApi.getClaudeDesktopStatus(),
     refetchInterval: 5000,
   });
-  const mapping = current
-    ? providerNeedsRouting("claude-desktop", current)
-    : false;
+  const { data: appMode } = useQuery({
+    queryKey: ["providers", "claude-desktop", "mode"],
+    queryFn: () => proxyApi.getAppMode("claude-desktop"),
+  });
+  // 聚合时当前卡片也是模型映射卡，但 Desktop 实际在聚合，不能说成「模型映射」
+  const stack = appMode?.mode === "stack";
+  const mapping =
+    stack ||
+    (current ? providerNeedsRouting("claude-desktop", current) : false);
   const running = proxyStatus?.running ?? false;
 
   const retry = async () => {
@@ -79,14 +85,16 @@ export function DesktopAccessBar({
       <div className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 rounded-panel bg-subtle px-5 py-2.5 text-body">
         <div className="flex min-w-0 flex-1 items-center gap-1 text-fg-2">
           <span className="truncate">
-            {current
-              ? t("desktopAccess.current", {
-                  name: current.name,
-                  mode: mapping
-                    ? t("nav.mode.mappingFull")
-                    : t("mode.names.direct"),
-                })
-              : t("desktopAccess.noCurrent")}
+            {stack
+              ? t("desktopAccess.stack")
+              : current
+                ? t("desktopAccess.current", {
+                    name: current.name,
+                    mode: mapping
+                      ? t("nav.mode.mappingFull")
+                      : t("mode.names.direct"),
+                  })
+                : t("desktopAccess.noCurrent")}
           </span>
           <HelpTip title={t("desktopAccess.helpTitle")}>
             {t("desktopAccess.help")}

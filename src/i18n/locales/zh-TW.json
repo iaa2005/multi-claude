@@ -1056,7 +1056,17 @@
       "service": "服務"
     },
     "data": {
-      "location": "儲存位置"
+      "location": "儲存位置",
+      "legacy": {
+        "title": "Data from CC Switch",
+        "description": "Bring providers with their keys, usage history, prompts, MCP servers, skills and backups over from {{path}}. Only what is missing here is added; nothing in MultiClaude is changed or removed, and the database is backed up first.",
+        "upToDate": "Everything from CC Switch is already here.",
+        "pending": "Can be added: providers {{providers}}, requests {{logs}}, daily usage rows {{rollups}}, other records {{other}}, skill folders {{skills}}, backups {{backups}}.",
+        "import": "Import",
+        "importing": "Importing…",
+        "done": "Imported: providers {{providers}}, requests {{logs}}, daily usage rows {{rollups}}, other records {{other}}, skill folders {{skills}}, backups {{backups}}.",
+        "failed": "Import failed: {{detail}}"
+      }
     }
   },
   "apps": {
@@ -4251,7 +4261,8 @@
       "mapping": "模型映射",
       "direct": "直連",
       "hermesManaged": "Hermes 託管",
-      "defaultModel": "預設模型 {{model}}"
+      "defaultModel": "預設模型 {{model}}",
+      "subscriptionModels": "訂閱模型"
     },
     "reason": {
       "noRoute": "官方訂閱不經過路由，回到直連後可用。",
@@ -4291,7 +4302,8 @@
     "running": "執行中",
     "notRunning": "路由服務沒能啟動",
     "changePort": "更改連接埠",
-    "notNeeded": "路由服務：目前供應商不需要"
+    "notNeeded": "路由服務：目前供應商不需要",
+    "stack": "Now: aggregating providers"
   },
   "routingSettings": {
     "service": "服務",

@@ -461,6 +461,14 @@ function buildSwitchSectionsByView(input: SwitchModeInput): ProviderSection[] {
     .filter((p) => p.id !== defaultId && stackMembers.has(p.id))
     .map((p) => p.id);
   const modelsChip = (p: Provider): CardChip => {
+    // Science 的官方卡没有自己的模型表：模型是 Anthropic 按订阅下发的
+    if (app === "claude-science" && p.id === "claude-science-official") {
+      return {
+        key: "models",
+        label: t("providerCard.chip.subscriptionModels"),
+        tone: "outline",
+      };
+    }
     const count = stackMembers.get(p.id) ?? 0;
     return count > 0
       ? {

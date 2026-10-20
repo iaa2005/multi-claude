@@ -1055,7 +1055,17 @@
       "service": "サービス"
     },
     "data": {
-      "location": "保存場所"
+      "location": "保存場所",
+      "legacy": {
+        "title": "Data from CC Switch",
+        "description": "Bring providers with their keys, usage history, prompts, MCP servers, skills and backups over from {{path}}. Only what is missing here is added; nothing in MultiClaude is changed or removed, and the database is backed up first.",
+        "upToDate": "Everything from CC Switch is already here.",
+        "pending": "Can be added: providers {{providers}}, requests {{logs}}, daily usage rows {{rollups}}, other records {{other}}, skill folders {{skills}}, backups {{backups}}.",
+        "import": "Import",
+        "importing": "Importing…",
+        "done": "Imported: providers {{providers}}, requests {{logs}}, daily usage rows {{rollups}}, other records {{other}}, skill folders {{skills}}, backups {{backups}}.",
+        "failed": "Import failed: {{detail}}"
+      }
     }
   },
   "apps": {
@@ -4250,7 +4260,8 @@
       "mapping": "モデルマッピング",
       "direct": "直接接続",
       "hermesManaged": "Hermes 管理",
-      "defaultModel": "既定モデル {{model}}"
+      "defaultModel": "既定モデル {{model}}",
+      "subscriptionModels": "サブスクリプションのモデル"
     },
     "reason": {
       "noRoute": "公式サブスクリプションはルーティングを通りません。直接接続に戻すと使えます。",
@@ -4290,7 +4301,8 @@
     "running": "実行中",
     "notRunning": "ルーティングサービスを起動できませんでした",
     "changePort": "ポートを変更",
-    "notNeeded": "ルーティングサービス：現在のプロバイダーには不要"
+    "notNeeded": "ルーティングサービス：現在のプロバイダーには不要",
+    "stack": "Now: aggregating providers"
   },
   "routingSettings": {
     "service": "サービス",

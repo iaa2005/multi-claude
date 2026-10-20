@@ -34,6 +34,7 @@ import { AppPageHeader } from "@/components/shell/AppPageHeader";
 import { DirectoryInput } from "@/components/settings/DirectorySettings";
 import { ImportExportSection } from "@/components/settings/ImportExportSection";
 import { BackupListSection } from "@/components/settings/BackupListSection";
+import { LegacyImportSection } from "@/components/settings/LegacyImportSection";
 import { WebdavSyncSection } from "@/components/settings/WebdavSyncSection";
 import { AboutSection } from "@/components/settings/AboutSection";
 import { RoutingSection } from "@/components/settings/sections/RoutingSection";
@@ -446,6 +447,7 @@ export function SettingsPage({
                 </SettingsRow>
               </SettingsCard>
             </SettingsBlock>
+            <LegacyImportSection />
             <SettingsBlock
               title={t("settings.advanced.data.title")}
               help={{

@@ -425,6 +425,28 @@ export interface BackupLocation {
   deletable: boolean;
 }
 
+export interface LegacyImportReport {
+  found: boolean;
+  path: string;
+  providers: number;
+  requestLogs: number;
+  rollups: number;
+  otherRows: number;
+  skillFolders: number;
+  backups: number;
+  backupFile?: string | null;
+}
+
+export const legacyImportApi = {
+  async preview(): Promise<LegacyImportReport> {
+    return await invoke("legacy_import_preview");
+  },
+
+  async apply(): Promise<LegacyImportReport> {
+    return await invoke("legacy_import_apply");
+  },
+};
+
 export const backupsApi = {
   async createDbBackup(): Promise<string> {
     return await invoke("create_db_backup");

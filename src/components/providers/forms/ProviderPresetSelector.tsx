@@ -673,7 +673,7 @@ function PresetPicker({
         <div
           role="group"
           aria-label={t("providerPreset.categoriesLabel")}
-          className="flex w-[168px] shrink-0 flex-col gap-0.5 overflow-y-auto"
+          className="flex w-[240px] shrink-0 flex-col gap-0.5 overflow-y-auto"
         >
           {navItems.map((key) => (
             <CategoryButton

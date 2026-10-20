@@ -330,6 +330,7 @@ function MainDirectory({
           title={hasUpdate ? t("nav.settingsHasUpdate") : t("nav.settings")}
           dot={hasUpdate}
           dotTone="success"
+          iconOnly
           onClick={() => onSelectPage("settings")}
         />
       </div>
@@ -440,7 +441,7 @@ function AppNavItem({
       onClick={onSelect}
       aria-current={selected ? "page" : undefined}
       className={cn(
-        "mx-2 flex h-7 w-[216px] shrink-0 items-center gap-2 rounded-control px-2 text-start transition-colors hover:bg-subtle",
+        "mx-2 flex h-7 w-[272px] shrink-0 items-center gap-2 rounded-control px-2 text-start transition-colors hover:bg-subtle",
         selected && "bg-selected font-medium hover:bg-selected",
       )}
     >
@@ -498,6 +499,7 @@ function NavItem({
   dot = false,
   dotTone = "neutral",
   endDot = false,
+  iconOnly = false,
   onClick,
 }: {
   collapsed: boolean;
@@ -516,6 +518,8 @@ function NavItem({
   dotTone?: "neutral" | "success";
   /** 圆点放在行尾（设置目录里的「关于」），而不是图标角上 */
   endDot?: boolean;
+  /** 只显示图标（底栏的「设置」：齿轮就够了），名字放提示里 */
+  iconOnly?: boolean;
   onClick: () => void;
 }) {
   const ring = selected ? "border-selected" : "border-sidebar";
@@ -546,7 +550,7 @@ function NavItem({
     </span>
   );
 
-  if (collapsed) {
+  if (collapsed || iconOnly) {
     return (
       <HoverTip
         content={title ?? accessibleName}
@@ -559,11 +563,12 @@ function NavItem({
           aria-label={title ?? accessibleName}
           aria-current={selected ? "page" : undefined}
           className={cn(
-            "mx-auto flex h-8 w-12 shrink-0 items-center justify-center rounded-control transition-colors hover:bg-subtle",
+            "flex shrink-0 items-center justify-center rounded-control transition-colors hover:bg-subtle",
+            collapsed ? "mx-auto h-8 w-12" : "h-7 w-9",
             selected && "bg-selected hover:bg-selected",
           )}
         >
-          {glyph(20)}
+          {glyph(collapsed ? 20 : 18)}
         </button>
       </HoverTip>
     );
@@ -582,7 +587,7 @@ function NavItem({
         aria-current={selected ? "page" : undefined}
         className={cn(
           "flex h-7 shrink-0 items-center gap-2 rounded-control px-2 text-start transition-colors hover:bg-subtle",
-          compact ? "min-w-0 flex-1" : "mx-2 w-[216px]",
+          compact ? "min-w-0 flex-1" : "mx-2 w-[272px]",
           selected && "bg-selected font-medium hover:bg-selected",
         )}
       >
@@ -651,7 +656,7 @@ function SettingsDirectory({
         <button
           type="button"
           onClick={onExitSettings}
-          className="mx-2 flex h-7 w-[216px] shrink-0 items-center gap-2 rounded-control px-2 text-start text-fg-2 transition-colors hover:bg-subtle hover:text-fg-1"
+          className="mx-2 flex h-7 w-[272px] shrink-0 items-center gap-2 rounded-control px-2 text-start text-fg-2 transition-colors hover:bg-subtle hover:text-fg-1"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
           {t("nav.back")}

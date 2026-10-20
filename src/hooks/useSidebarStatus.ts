@@ -66,6 +66,14 @@ export function useSidebarStatus() {
   const appStatus = useMemo(() => {
     return (app: AppId): AppNavStatus => {
       if (app === "claude-desktop") {
+        const mode = modes[PROXY_APP_IDS.indexOf(app)];
+        if (mode === "stack") {
+          return {
+            mode,
+            mapping: false,
+            alert: proxyStatus !== undefined && !serviceRunning,
+          };
+        }
         return {
           mode: "direct",
           mapping: desktopMapping,
